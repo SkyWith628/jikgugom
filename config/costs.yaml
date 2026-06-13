@@ -1,0 +1,25 @@
+# 마진엔진 비용 파라미터 — 코드와 분리(정책/시세 변동 시 여기만 갱신)
+# 환율은 운영 시 실시간 주입(quote의 fx_rate 인자) 권장. 아래는 기본값/폴백.
+fx_rate_krw_per_usd: 1380       # USD→KRW 기본 환율
+fx_buffer: 1.05                 # 주문~발주 환율 변동 흡수 버퍼(+5%)
+
+intl_shipping_krw: 8000         # 해외(미국)→한국 배송비(건당 추정)
+domestic_shipping_krw: 3000     # 국내 배송비
+return_reserve_rate: 0.03       # 반품충당(도착원가의 3%)
+
+target_margin_rate: 0.25        # 목표 순마진율
+
+import_vat_rate: 0.10           # 수입 부가세(일반통관 시)
+default_duty_rate: 0.08         # 기본 관세율(HS 미매칭 시)
+duty_rates:                     # HS 6자리 → 관세율
+  "6109.10": 0.13               # 티셔츠 등 편물 의류
+  "8504.40": 0.08               # 충전기/어댑터
+  "8518.30": 0.08               # 헤드폰
+  "9503.00": 0.00               # 완구(무세)
+
+price_rounding_krw: 100         # 판매가 올림 단위
+
+channels:                       # 채널별 수수료(보수적 상한)
+  naver:
+    sales_fee_rate: 0.058       # 매출연동수수료(카테고리별, 상한 적용)
+    payment_fee_rate: 0.034     # 네이버페이 결제수수료

@@ -1,0 +1,14 @@
+# 통관 금지 — 매칭 시 즉시 BLOCK (customs_type=prohibited)
+# keyword: 제목/설명에 등장하면 차단할 소문자 부분문자열
+# category: category_path 안에 등장하면 차단할 카테고리 토큰
+keywords:
+  - prescription
+  - medicine
+  - firearm
+  - ammunition
+  - taser
+  - pepper spray
+categories:
+  - Drugs
+  - Weapons
+  - Tobacco

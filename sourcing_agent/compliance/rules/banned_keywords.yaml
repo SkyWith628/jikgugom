@@ -1,0 +1,9 @@
+# 금지어(정규식) — 의료효능·인증 사칭 등. 매칭 시 BLOCK.
+# pattern: 파이썬 정규식 (제목+설명에 대해 대소문자 무시 검색)
+patterns:
+  - pattern: '\b(FDA|fda)\b'
+    message: "FDA 표현 — 의약품/의료기기 오인 소지"
+  - pattern: '치료|의료용|질병|효능'
+    message: "의료/효능 표현 — 의약외품·의료기기 규제 대상"
+  - pattern: '\b(authentic|genuine)\s+(guarantee|guaranteed)\b'
+    message: "정품 보장 표현 — 병행수입/위조 분쟁 소지"

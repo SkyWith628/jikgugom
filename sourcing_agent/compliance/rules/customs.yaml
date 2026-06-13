@@ -1,0 +1,9 @@
+# 통관·과세 파라미터 (값은 정책 변동 시 갱신)
+# 미국발 목록통관 면세 한도(한미FTA). 초과분은 일반통관 → REVIEW.
+us_list_clearance_limit_usd: 200
+hs_map:                 # category_path 토큰 → HS코드 (6자리)
+  Chargers: "8504.40"
+  Power Banks: "8507.60"
+  Headphones: "8518.30"
+  Keyboards: "8471.60"
+  Toys: "9503.00"

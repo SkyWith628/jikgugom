@@ -1,0 +1,9 @@
+# 짝퉁/라이선스 위험 브랜드 — brand 또는 제목에 등장하면 BLOCK.
+counterfeit_risk:
+  - Nike
+  - Adidas
+  - Gucci
+  - Louis Vuitton
+  - Disney
+  - Pokemon
+  - Supreme

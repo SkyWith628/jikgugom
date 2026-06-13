@@ -1,0 +1,15 @@
+# KC 안전인증 필요 품목 — category_path 토큰으로 매칭.
+# verdict: block(인증없이 판매불가) 또는 review(회색지대, 사람검토)
+categories:
+  - match: Chargers
+    verdict: block
+    message: "전기용품(충전기) — KC 안전인증 필요"
+  - match: Power Banks
+    verdict: review
+    message: "보조배터리 — KC인증 + 리튬배터리 항공운송 제한 확인 필요"
+  - match: Power Strips
+    verdict: block
+    message: "전원 멀티탭 — KC 안전인증 필요"
+  - match: LED Lighting
+    verdict: block
+    message: "LED 조명 — KC 안전인증 필요"
