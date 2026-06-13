@@ -6,8 +6,8 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.compliance.models import ComplianceResult, CustomsType, Reason, Verdict
-from sourcing_agent.margin import MarginEngine
+from jikgugom.compliance.models import ComplianceResult, CustomsType, Reason, Verdict
+from jikgugom.margin import MarginEngine
 from tests.fakes import make_source_product
 
 

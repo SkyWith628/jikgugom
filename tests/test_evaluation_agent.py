@@ -6,10 +6,10 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.evaluation import EvaluationAgent, Recommendation
-from sourcing_agent.evaluation.llm import LLM, ScoreResult
-from sourcing_agent.evaluation.models import MarketSignals, recommend
-from sourcing_agent.evaluation.tools import clamp_score, collect_signals, heuristic_score
+from jikgugom.evaluation import EvaluationAgent, Recommendation
+from jikgugom.evaluation.llm import LLM, ScoreResult
+from jikgugom.evaluation.models import MarketSignals, recommend
+from jikgugom.evaluation.tools import clamp_score, collect_signals, heuristic_score
 from tests.fakes import make_source_product
 
 

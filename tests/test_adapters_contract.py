@@ -9,8 +9,8 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.adapters.base import ChannelAdapter, SourceAdapter
-from sourcing_agent.models import (
+from jikgugom.adapters.base import ChannelAdapter, SourceAdapter
+from jikgugom.models import (
     AvailabilitySnapshot,
     ChannelCategory,
     ChannelOrder,

@@ -113,7 +113,7 @@ kc_required_categories:
 ## 4. 파일 구조
 
 ```
-sourcing_agent/compliance/        # (또는 src/compliance/)
+jikgugom/compliance/        # (또는 src/compliance/)
 ├── __init__.py
 ├── engine.py            # 룰 체인 평가 엔진 (단락 평가 + 사유 수집)
 ├── rules_loader.py      # rules/*.yaml 로드·검증·캐시

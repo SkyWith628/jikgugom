@@ -7,10 +7,10 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.compliance import ComplianceEngine
-from sourcing_agent.margin import MarginEngine
-from sourcing_agent.models import ChannelOrder
-from sourcing_agent.order import GuardAction, OrderContext, OrderProcessor, OrderStatus
+from jikgugom.compliance import ComplianceEngine
+from jikgugom.margin import MarginEngine
+from jikgugom.models import ChannelOrder
+from jikgugom.order import GuardAction, OrderContext, OrderProcessor, OrderStatus
 from tests.fakes import FakeFulfiller, FakeSourceAdapter, make_source_product
 
 FX_NOTE = "환율은 기본 config(1380) 사용 — 가드는 기본 환율로 현재가 재평가"

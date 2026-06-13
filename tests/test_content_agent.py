@@ -6,16 +6,16 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.content import ContentAgent, Translator
-from sourcing_agent.content.llm import ContentLLM
-from sourcing_agent.content.tools import (
+from jikgugom.content import ContentAgent, Translator
+from jikgugom.content.llm import ContentLLM
+from jikgugom.content.tools import (
     extract_keywords,
     glossary_translate,
     rehost_images,
     truncate_title,
 )
-from sourcing_agent.margin.models import CostBreakdown, MarginQuote
-from sourcing_agent.models import ChannelCategory
+from jikgugom.margin.models import CostBreakdown, MarginQuote
+from jikgugom.models import ChannelCategory
 from tests.fakes import make_source_product
 
 

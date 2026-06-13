@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from sourcing_agent.models import ListingDraft
+from jikgugom.models import ListingDraft
 
 
 @dataclass

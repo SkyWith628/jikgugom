@@ -9,14 +9,14 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from api.store import ListingRecord, OrderRecord, Store
-from sourcing_agent.compliance import ComplianceEngine
-from sourcing_agent.content import ContentAgent
-from sourcing_agent.evaluation import EvaluationAgent
-from sourcing_agent.margin import MarginEngine
-from sourcing_agent.models import ChannelOrder, PublishStatus
-from sourcing_agent.order import OrderContext, OrderProcessor
-from sourcing_agent.pipeline import ListingStatus, PipelineRunner
-from sourcing_agent.samples import SampleChannel, SampleFulfiller, SampleSource
+from jikgugom.compliance import ComplianceEngine
+from jikgugom.content import ContentAgent
+from jikgugom.evaluation import EvaluationAgent
+from jikgugom.margin import MarginEngine
+from jikgugom.models import ChannelOrder, PublishStatus
+from jikgugom.order import OrderContext, OrderProcessor
+from jikgugom.pipeline import ListingStatus, PipelineRunner
+from jikgugom.samples import SampleChannel, SampleFulfiller, SampleSource
 
 FX = Decimal("1380")
 

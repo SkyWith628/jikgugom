@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.compliance import ComplianceEngine, CustomsType, Verdict
+from jikgugom.compliance import ComplianceEngine, CustomsType, Verdict
 from tests.fakes import make_source_product
 
 
@@ -101,7 +101,7 @@ def test_empty_inputs_do_not_crash(engine):
 
 def test_result_invariant_block_requires_reason():
     """엔진 버그 가드: BLOCK/REVIEW인데 사유가 비면 즉시 예외."""
-    from sourcing_agent.compliance.models import ComplianceResult
+    from jikgugom.compliance.models import ComplianceResult
 
     with pytest.raises(ValueError):
         ComplianceResult(verdict=Verdict.BLOCK, reasons=[])

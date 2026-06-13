@@ -7,11 +7,11 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.compliance import ComplianceEngine, CustomsType
-from sourcing_agent.margin import MarginEngine
-from sourcing_agent.models import AvailabilitySnapshot
-from sourcing_agent.monitor import ListingState, MonitorAction, MonitorWorker
-from sourcing_agent.monitor.worker import MonitorConfig
+from jikgugom.compliance import ComplianceEngine, CustomsType
+from jikgugom.margin import MarginEngine
+from jikgugom.models import AvailabilitySnapshot
+from jikgugom.monitor import ListingState, MonitorAction, MonitorWorker
+from jikgugom.monitor.worker import MonitorConfig
 from tests.fakes import FakeChannelAdapter, FakeSourceAdapter, make_source_product
 
 FX = Decimal("1380")
@@ -29,7 +29,7 @@ def resolver():
 
 
 def _baseline_price_krw(margin: MarginEngine) -> Decimal:
-    from sourcing_agent.compliance.models import ComplianceResult, Verdict
+    from jikgugom.compliance.models import ComplianceResult, Verdict
     p = make_source_product(price=BASE_USD)
     c = ComplianceResult(Verdict.PASS, [], customs_type=CustomsType.LIST)
     return margin.quote(p, c, fx_rate=FX).sale_price_krw

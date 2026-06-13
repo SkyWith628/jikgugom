@@ -10,10 +10,10 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.adapters._http import AdapterError
-from sourcing_agent.adapters.amazon import AmazonRainforestAdapter
-from sourcing_agent.adapters.naver import NaverSmartstoreAdapter
-from sourcing_agent.models import PublishStatus
+from jikgugom.adapters._http import AdapterError
+from jikgugom.adapters.amazon import AmazonRainforestAdapter
+from jikgugom.adapters.naver import NaverSmartstoreAdapter
+from jikgugom.models import PublishStatus
 
 # ── Rainforest 카드 응답 ────────────────────────────────────
 PRODUCT = {
@@ -94,7 +94,7 @@ def _naver(responses=None):
 
 
 def _draft():
-    from sourcing_agent.models import ChannelCategory, ListingDraft
+    from jikgugom.models import ChannelCategory, ListingDraft
     return ListingDraft(
         product_id="amazon:B07X", title_ko="무선 이어폰",
         description_html="<p>좋음</p>", image_urls_cdn=["https://cdn/a.jpg", "https://cdn/b.jpg"],

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from sourcing_agent.cs import CSAction, CSAgent, CSContext, Intent
-from sourcing_agent.cs.tools import search_refund_policy
-from sourcing_agent.order.models import OrderStatus
+from jikgugom.cs import CSAction, CSAgent, CSContext, Intent
+from jikgugom.cs.tools import search_refund_policy
+from jikgugom.order.models import OrderStatus
 
 
 @pytest.fixture(autouse=True)

@@ -6,7 +6,7 @@ from decimal import Decimal
 
 import pytest
 
-from sourcing_agent.pipeline import ListingStatus, PipelineConfig, PipelineRunner
+from jikgugom.pipeline import ListingStatus, PipelineConfig, PipelineRunner
 from tests.fakes import FakeChannelAdapter, FakeSourceAdapter, make_source_product
 
 FX = Decimal("1380")
@@ -93,7 +93,7 @@ def test_one_bad_item_does_not_block_batch():
 
 # ── 평가 에이전트 통합 (stage 2.5) ──────────────────────────
 def test_evaluator_attaches_score_to_ready(monkeypatch):
-    from sourcing_agent.evaluation import EvaluationAgent
+    from jikgugom.evaluation import EvaluationAgent
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     catalog = [make_source_product("OK", title="Wireless Earbuds",
                                    category_path=["Best", "Headphones"], price=Decimal("29"),
@@ -107,7 +107,7 @@ def test_evaluator_attaches_score_to_ready(monkeypatch):
 
 def test_skip_recommendation_routes_to_review(monkeypatch):
     """시장성 낮은(SKIP) 상품은 자동 READY가 아니라 사람 검토로."""
-    from sourcing_agent.evaluation import EvaluationAgent
+    from jikgugom.evaluation import EvaluationAgent
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     catalog = [make_source_product("DUD", title="Generic Widget",
                                    category_path=["Best", "Misc"], price=Decimal("20"),
@@ -129,7 +129,7 @@ def test_no_evaluator_is_backward_compatible():
 # ── 콘텐츠 에이전트 주입 (ContentBuilder) ────────────────────
 def test_content_agent_as_builder(monkeypatch):
     """ContentAgent.build를 content_builder로 주입하면 한글 초안이 생성된다."""
-    from sourcing_agent.content import ContentAgent
+    from jikgugom.content import ContentAgent
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("DEEPL_API_KEY", raising=False)
     catalog = [make_source_product("OK", title="Wireless Earbuds",

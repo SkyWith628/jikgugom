@@ -10,8 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 
-from sourcing_agent.adapters.base import ChannelAdapter, SourceAdapter
-from sourcing_agent.models import (
+from jikgugom.adapters.base import ChannelAdapter, SourceAdapter
+from jikgugom.models import (
     AvailabilitySnapshot,
     ChannelCategory,
     ChannelOrder,
@@ -126,7 +126,7 @@ class FakeFulfiller:
         self._seq = 0
 
     def place_order(self, source_id: str, quantity: int, shipping_address: dict):
-        from sourcing_agent.order.models import FulfillmentResult
+        from jikgugom.order.models import FulfillmentResult
         self._seq += 1
         self.orders.append((source_id, quantity, shipping_address))
         return FulfillmentResult(fulfillment_id=f"AMZ{self._seq:06d}",

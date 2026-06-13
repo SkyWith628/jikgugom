@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "구매대행 어드민 · sourcing-agent",
-  description: "Amazon US → 네이버 스마트스토어 구매대행 자동화 어드민 대시보드",
+  title: "직구곰 어드민",
+  description: "직구곰 — Amazon US → 네이버 스마트스토어 구매대행 자동화 어드민 대시보드",
 };
 
 export default function RootLayout({

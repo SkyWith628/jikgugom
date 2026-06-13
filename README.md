@@ -1,4 +1,6 @@
-# sourcing-agent — 해외 구매대행 자동화 플랫폼
+# 직구곰 (jikgugom) — 해외 구매대행 자동화 플랫폼
+
+> 🐻 직구곰: 해외직구(직구)를 대신 해주는 곰. Amazon에서 곰처럼 부지런히 물어와 네이버에 풀어놓는다.
 
 해외(Amazon 등) 인기상품을 소싱 → 통관·인증 규제 필터 → 전 비용 마진계산 →
 한글 상세페이지 → **국내 멀티채널 동시 등록** → 자동/반자동 발주 → 가격·재고 모니터링까지
@@ -32,7 +34,7 @@
 ### 레벨 1 — 키 없이 데모/테스트 (즉시)
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만
-python -m sourcing_agent.demo            # 샘플 카탈로그로 전체 흐름 1회 실행(mock)
+python -m jikgugom.demo            # 샘플 카탈로그로 전체 흐름 1회 실행(mock)
 python -m pytest -q                       # 94 passed
 ```
 
@@ -66,7 +68,7 @@ DB 영속화 · Celery 스케줄러(모니터/소싱 주기 실행) ·
 ## 코드 구조
 
 ```
-sourcing_agent/
+jikgugom/
 ├── models.py                # 공용 DTO (SourceProduct, ListingDraft, ...)
 ├── adapters/                # 포트-어댑터: SourceAdapter / ChannelAdapter (ABC)
 │   ├── base.py  amazon.py  naver.py

@@ -58,7 +58,7 @@ export default function Dashboard() {
     <main className="mx-auto max-w-6xl px-6 py-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">구매대행 어드민</h1>
+          <h1 className="text-2xl font-bold text-zinc-900">🐻 직구곰 어드민</h1>
           <p className="text-sm text-zinc-500">
             Amazon US → 네이버 스마트스토어 · 등록/발주 사람 승인
           </p>
