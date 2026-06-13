@@ -124,3 +124,20 @@ def test_no_evaluator_is_backward_compatible():
     [o] = [x for x in _runner().run("Best", pricing_channel="naver", fx_rate=FX)
            if x.source_id == "OK"]
     assert o.status is ListingStatus.READY and o.evaluation is None
+
+
+# ── 콘텐츠 에이전트 주입 (ContentBuilder) ────────────────────
+def test_content_agent_as_builder(monkeypatch):
+    """ContentAgent.build를 content_builder로 주입하면 한글 초안이 생성된다."""
+    from sourcing_agent.content import ContentAgent
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPL_API_KEY", raising=False)
+    catalog = [make_source_product("OK", title="Wireless Earbuds",
+                                   category_path=["Best", "Headphones"], price=Decimal("29"),
+                                   hs_code="8518.30")]
+    runner = PipelineRunner(FakeSourceAdapter(catalog), FakeChannelAdapter(),
+                            content_builder=ContentAgent().build)
+    [o] = runner.run("Best", pricing_channel="naver", fx_rate=FX)
+    assert o.status is ListingStatus.READY
+    assert "이어폰" in o.draft.title_ko
+    assert o.draft.price_krw == o.quote.sale_price_krw

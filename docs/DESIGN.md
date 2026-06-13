@@ -225,7 +225,8 @@ Phase 3 — 고도화
 | **모니터 워커** | ✅ **구현 완료** (`monitor/`, 폴링 → pause/reprice/resume) |
 | **파이프라인 러너** | ✅ **구현 완료** (`pipeline/`, 소싱→…→등록 오케스트레이션 + 승인 게이트) |
 | **소싱 평가 에이전트** | ✅ **구현 완료** (`evaluation/`, stage 2.5, mock 모드 + margin/compliance 재사용) |
-| 콘텐츠 에이전트 / CS 에이전트 | 로드맵 (Phase 2) |
+| **콘텐츠 에이전트** | ✅ **구현 완료** (`content/`, ContentBuilder, DeepL+LLM 하이브리드 + mock) |
+| CS 에이전트 | 로드맵 (Phase 2) |
 | 모니터 워커 | 로드맵 (Phase 1, 승격) |
 | 콘텐츠/번역 모듈 | 로드맵 (Phase 2) |
 | 멀티채널 등록 | 로드맵 (Phase 2) |
