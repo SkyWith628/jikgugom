@@ -28,12 +28,28 @@
 
 ## 실행
 
+### 레벨 1 — 키 없이 데모/테스트 (즉시)
 ```bash
-pip install -r requirements.txt          # 핵심은 PyYAML만; anthropic/DeepL은 real 모드에서만
-python -m pytest -q   # 94 passed
-# ANTHROPIC_API_KEY / DEEPL_API_KEY 없으면 에이전트는 자동 mock 모드 (키 없이 전체 동작)
-# 실 어댑터(Amazon/Naver)는 RAINFOREST/네이버 키 필요 — 매핑·인증은 canned 테스트로 검증
+pip install -r requirements.txt          # 핵심은 PyYAML만
+python -m sourcing_agent.demo            # 샘플 카탈로그로 전체 흐름 1회 실행(mock)
+python -m pytest -q                       # 94 passed
 ```
+
+### 레벨 2 — 실 API 키로 동작
+환경변수만 채우면 mock → real 자동 전환 (없는 키는 mock 유지).
+```bash
+export RAINFOREST_API_KEY=...   # Amazon 소싱 (rainforestapi.com, 유료)
+export NAVER_CLIENT_ID=...      # 네이버 커머스 API (판매자센터, 사업자등록 필요)
+export NAVER_CLIENT_SECRET=...  #   + pip install bcrypt
+export ANTHROPIC_API_KEY=...    # 평가/콘텐츠/CS 에이전트 real (선택)
+export DEEPL_API_KEY=...        # 본문 번역 real (선택, deepl.com 무료 티어)
+```
+실 어댑터 주입은 `demo.py`의 `SampleSource/SampleChannel`을
+`AmazonRainforestAdapter(key)` / `NaverSmartstoreAdapter(id, secret)`로 교체.
+
+### 레벨 3 — 상시 운영 (남은 갭)
+DB 영속화 · Celery 스케줄러(모니터/소싱 주기 실행) · Admin 대시보드(승인 버튼) ·
+발주 자동화(`FulfillmentAdapter` 실구현) — Phase 2/3 로드맵.
 
 ## 코드 구조
 
