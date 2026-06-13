@@ -17,8 +17,11 @@
 
 ```
 order/
-├── models.py     # OrderStatus/GuardAction, OrderContext, OrderGuardResult, OrderOutcome
-├── fulfiller.py  # FulfillmentAdapter(ABC): place_order/track_shipment
+├── models.py     # OrderStatus/GuardAction, OrderContext, OrderGuardResult, OrderOutcome,
+│                 #   FulfillmentStatus, FulfillmentRecord(원장 한 줄)
+├── fulfiller.py  # FulfillmentAdapter(ABC): place_order(idempotency_key=)/track_shipment
+├── ledger.py     # FulfillmentLedger(ABC) + InMemoryFulfillmentLedger (멱등 저장 포트)
+├── manual.py     # ManualFulfiller: 반자동(HITL) 실구현 — 원장 기록→운영자 confirm
 └── processor.py  # OrderProcessor: evaluate_guard / process(auto_order)
 ```
 
@@ -31,12 +34,29 @@ process(order, ctx):
      └ AUTO_ORDER → FulfillmentAdapter.place_order → AMAZON_ORDERED
 ```
 
+## 발주 방식 (반자동 / HITL)
+
+Amazon은 제3자 공개 구매 API가 없다 → 브라우저 자동결제는 ToS 위반·취약.
+'돈=사람 게이트' 원칙대로 **반자동(HITL)** 으로 구현: `ManualFulfiller`.
+
+```
+place_order(idempotency_key=channel_order_no)
+  ├ 원장에 키 있음 → 기존 결과 반환 (멱등: 재매입 없음)
+  └ 없음 → AWAITING_PURCHASE 기록 → 운영자가 confirm_purchase로 실매입 확정
+       └ confirm_purchase(amazon_order_no, tracking_no) → PURCHASED
+       └ update_shipment(status) → shipped/customs/delivered
+```
+
+- **멱등키 = `channel_order_no`.** 같은 채널주문은 영원히 한 번만 매입(이중결제 금지).
+  계약(`place_order`)이 `idempotency_key`를 필수로 받는다.
+- 영속 원장(SqlFulfillmentLedger)은 운영 관심사라 api/에 둘 것(현재 InMemory만).
+
 ## TODO / 제약
 
-- `FulfillmentAdapter` 구현체 없음: Amazon은 제3자 구매 API가 없어 발주는
-  자동화(체크아웃)나 대행 매입으로 구현 → 환경 종속. 계약만 정의.
-- 송장 동기화·통관추적(track_shipment 후속)·환불 흐름은 후속.
+- 운영자 confirm을 대시보드 UI/외부 구매대행 서비스 webhook과 연결(현재 메서드만).
+- 환불·취소 흐름(CANCELLED)·통관추적 동기화는 후속.
 - PCCC(개인통관고유부호)는 발주 직전 복호화·발주 후 폐기 (개인정보보호법).
+  원장에 PCCC·결제정보 저장 금지(`FulfillmentRecord`는 source_id/qty/상태만).
 
 ## 보안
 

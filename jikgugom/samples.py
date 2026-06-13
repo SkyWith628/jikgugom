@@ -99,7 +99,7 @@ class SampleChannel(ChannelAdapter):
 class SampleFulfiller:
     name = "sample-amazon"
 
-    def place_order(self, source_id, quantity, shipping_address):
+    def place_order(self, source_id, quantity, shipping_address, *, idempotency_key):
         return FulfillmentResult(f"AMZ-{source_id}", message="placed (demo)")
 
     def track_shipment(self, fulfillment_id):

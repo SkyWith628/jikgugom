@@ -96,7 +96,9 @@ class DashboardService:
         rec = self.repo.get_order(order_id)
         if rec is None:
             raise KeyError(order_id)
-        res = self._fulfiller.place_order(rec.product_id, rec.quantity, {})
+        # 멱등키 = order_id: 승인 버튼 중복 클릭에도 한 번만 매입
+        res = self._fulfiller.place_order(rec.product_id, rec.quantity, {},
+                                          idempotency_key=order_id)
         rec.status = "amazon_ordered"
         rec.fulfillment_id = res.fulfillment_id
         self.repo.save_order(rec)
