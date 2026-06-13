@@ -23,13 +23,14 @@
 | 소싱 평가 에이전트 (`evaluation/`) | ✅ 구현 완료 (stage 2.5, mock 모드, margin/compliance 재사용) |
 | 콘텐츠 에이전트 (`content/`) | ✅ 구현 완료 (ContentBuilder, DeepL+LLM 하이브리드, mock) |
 | 주문→발주 가드 (`order/`) | ✅ 구현 완료 (profit_at 재검증 → 자동발주/승인큐) |
-| CS 에이전트 / 멀티채널 | 로드맵 (Phase 2/3) |
+| ③ CS 응대 에이전트 (`cs/`) | ✅ 구현 완료 (자동응답 + 민감건 결정론 에스컬레이션) |
+| 멀티채널(쿠팡) / 예측 ML | 로드맵 (Phase 3) |
 
 ## 실행
 
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만; anthropic/DeepL은 real 모드에서만
-python -m pytest -q   # 85 passed
+python -m pytest -q   # 94 passed
 # ANTHROPIC_API_KEY / DEEPL_API_KEY 없으면 에이전트는 자동 mock 모드 (키 없이 전체 동작)
 # 실 어댑터(Amazon/Naver)는 RAINFOREST/네이버 키 필요 — 매핑·인증은 canned 테스트로 검증
 ```
@@ -54,8 +55,10 @@ sourcing_agent/
 │   ├── agent.py  llm.py  tools.py  models.py  CLAUDE.md
 ├── content/                  # ② 콘텐츠 에이전트 (ContentBuilder, 한글 초안 생성)
 │   ├── agent.py  translator.py  llm.py  tools.py  CLAUDE.md
-└── order/                    # 주문→발주 가드 (Phase 2): profit_at 재검증
-    ├── processor.py  fulfiller.py  models.py  CLAUDE.md
+├── order/                    # 주문→발주 가드 (Phase 2): profit_at 재검증
+│   ├── processor.py  fulfiller.py  models.py  CLAUDE.md
+└── cs/                       # ③ CS 응대 에이전트 (자동응답 + 에스컬레이션)
+    ├── agent.py  llm.py  tools.py  models.py  CLAUDE.md
 config/costs.yaml             # 비용 파라미터 (환율·관세·수수료)
 tests/                        # fakes.py + 계약/엔진 테스트
 ```
