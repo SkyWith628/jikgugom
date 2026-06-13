@@ -5,7 +5,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 export type Listing = {
   id: string;
   title: string;
-  status: "ready" | "published" | "review" | "blocked" | "margin_rejected";
+  status: "ready" | "published" | "paused" | "review" | "blocked" | "margin_rejected";
   note: string;
   price_krw: number | null;
   market_score: number | null;
@@ -31,6 +31,15 @@ export type Stats = {
   orders_pending: number;
 };
 
+export type SweepChange = {
+  id: string;
+  action: "pause" | "reprice" | "resume";
+  reason: string;
+  new_price_krw: number | null;
+};
+
+export type SweepResult = { changed: number; changes: SweepChange[] };
+
 async function req<T>(path: string, method: "GET" | "POST" = "GET"): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { method, cache: "no-store" });
   if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
@@ -42,6 +51,7 @@ export const api = {
   listings: () => req<Listing[]>("/api/listings"),
   orders: () => req<Order[]>("/api/orders"),
   runSourcing: () => req<Listing[]>("/api/sourcing/run", "POST"),
+  runMonitor: () => req<SweepResult>("/api/monitor/run", "POST"),
   approveListing: (id: string) => req<Listing>(`/api/listings/${id}/approve`, "POST"),
   approveOrder: (id: string) => req<Order>(`/api/orders/${id}/approve`, "POST"),
   rejectOrder: (id: string) => req<Order>(`/api/orders/${id}/reject`, "POST"),

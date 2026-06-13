@@ -3,6 +3,7 @@ pytest>=8.0
 fastapi>=0.115     # 어드민 대시보드 API
 uvicorn>=0.30      # ASGI 서버
 SQLAlchemy>=2.0    # 영속화 (SQLite 기본 / PostgreSQL 전환)
+APScheduler>=3.10  # 가격·재고 점검 주기 실행(인프로세스 스케줄러)
 
 # 선택: real 모드에서만 필요 (없으면 자동 mock 모드)
 # anthropic>=0.40   # 평가/콘텐츠 에이전트 real

@@ -33,6 +33,9 @@ class ListingRow(Base):
     recommendation: Mapped[str | None] = mapped_column(String, nullable=True)
     channel_product_no: Mapped[str | None] = mapped_column(String, nullable=True)
     draft_json: Mapped[str | None] = mapped_column(String, nullable=True)
+    source_currency: Mapped[str] = mapped_column(String, default="USD")
+    hs_code: Mapped[str | None] = mapped_column(String, nullable=True)
+    baseline_price_usd: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class OrderRow(Base):
@@ -80,7 +83,9 @@ def _to_listing(row: ListingRow) -> ListingRecord:
     return ListingRecord(
         id=row.id, title=row.title, status=row.status, note=row.note,
         price_krw=row.price_krw, market_score=row.market_score,
-        recommendation=row.recommendation, channel_product_no=row.channel_product_no)
+        recommendation=row.recommendation, channel_product_no=row.channel_product_no,
+        source_currency=row.source_currency, hs_code=row.hs_code,
+        baseline_price_usd=row.baseline_price_usd)
 
 
 def _to_order(row: OrderRow) -> OrderRecord:
@@ -114,6 +119,9 @@ class SqlRepository(Repository):
             row.price_krw, row.market_score = rec.price_krw, rec.market_score
             row.recommendation = rec.recommendation
             row.channel_product_no = rec.channel_product_no
+            row.source_currency = rec.source_currency
+            row.hs_code = rec.hs_code
+            row.baseline_price_usd = rec.baseline_price_usd
             if draft is not None:
                 row.draft_json = draft_to_json(draft)
             s.merge(row)

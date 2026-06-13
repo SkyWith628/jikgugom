@@ -12,12 +12,16 @@ from dataclasses import dataclass
 class ListingRecord:
     id: str
     title: str
-    status: str                      # ready | published | review | blocked | margin_rejected
+    status: str                      # ready | published | paused | review | blocked | margin_rejected
     note: str
     price_krw: int | None = None
     market_score: int | None = None
     recommendation: str | None = None
     channel_product_no: str | None = None
+    # 모니터링용 — 발행된 상품의 원본가/통관 기준 (가격·재고 점검에 필요)
+    source_currency: str = "USD"
+    hs_code: str | None = None
+    baseline_price_usd: str | None = None  # Decimal을 문자열로 보관
 
 
 @dataclass

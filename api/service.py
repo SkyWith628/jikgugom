@@ -17,6 +17,7 @@ from jikgugom.content import ContentAgent
 from jikgugom.evaluation import EvaluationAgent
 from jikgugom.margin import MarginEngine
 from jikgugom.models import ChannelOrder, PublishStatus
+from jikgugom.monitor import ListingState, MonitorAction, MonitorWorker
 from jikgugom.order import OrderContext, OrderProcessor
 from jikgugom.pipeline import ListingStatus, PipelineRunner
 from jikgugom.samples import SampleChannel, SampleFulfiller, SampleSource
@@ -37,6 +38,8 @@ class DashboardService:
         )
         self._order_proc = OrderProcessor(
             self._source, self._fulfiller, self._margin, self._compliance.customs_type_for)
+        self._monitor = MonitorWorker(
+            self._source, self._channel, self._margin, self._compliance.customs_type_for)
         self.repo = repository or make_repository()
         if self.repo.is_listings_empty():   # 비어 있을 때만 시드 → 재시작 시 유지
             self.run_sourcing()
@@ -47,12 +50,15 @@ class DashboardService:
     def run_sourcing(self) -> None:
         self.repo.clear_listings()
         for o in self._runner.run("Best", pricing_channel="naver", fx_rate=FX):
+            sp = self._source.get_product(o.source_id)   # 원본 기준가/통관 정보 보관(모니터링용)
             rec = ListingRecord(
                 id=o.source_id, title=(o.draft.title_ko if o.draft else o.source_id),
                 status=o.status.value, note=o.note,
                 price_krw=int(o.quote.sale_price_krw) if o.quote else None,
                 market_score=o.evaluation.market_score if o.evaluation else None,
                 recommendation=o.evaluation.recommendation.value if o.evaluation else None,
+                source_currency=sp.currency, hs_code=sp.hs_code,
+                baseline_price_usd=str(sp.price),
             )
             self.repo.save_listing(rec, o.draft)
 
@@ -103,6 +109,38 @@ class DashboardService:
         rec.status = "rejected"
         self.repo.save_order(rec)
         return rec
+
+    # ── 가격·재고 점검 (스케줄러가 주기 호출) ────────────────
+    def monitor_sweep(self) -> list[dict]:
+        """발행/중지 상품의 원본가·재고를 점검 → pause/reprice/resume 반영. 변경분 반환."""
+        recs_by_cpn: dict[str, ListingRecord] = {}
+        states: list[ListingState] = []
+        for rec in self.repo.list_listings():
+            if (rec.status not in ("published", "paused") or not rec.channel_product_no
+                    or not rec.baseline_price_usd or rec.price_krw is None):
+                continue
+            recs_by_cpn[rec.channel_product_no] = rec
+            states.append(ListingState(
+                channel="naver", channel_product_no=rec.channel_product_no, source_id=rec.id,
+                baseline_price=Decimal(rec.baseline_price_usd), currency=rec.source_currency,
+                hs_code=rec.hs_code, current_price_krw=Decimal(rec.price_krw),
+                is_paused=(rec.status == "paused")))
+
+        changes: list[dict] = []
+        for d in self._monitor.run(states):           # 원본 폴링 + 채널 부수효과 적용
+            if d.action is MonitorAction.NONE:
+                continue
+            rec = recs_by_cpn[d.channel_product_no]
+            if d.action is MonitorAction.PAUSE:
+                rec.status, rec.note = "paused", f"일시중지: {d.reason}"
+            elif d.action is MonitorAction.REPRICE:
+                rec.price_krw, rec.note = int(d.new_price_krw), f"가격조정: {d.reason}"
+            elif d.action is MonitorAction.RESUME:
+                rec.status, rec.price_krw, rec.note = "published", int(d.new_price_krw), "판매재개"
+            self.repo.save_listing(rec, None)
+            changes.append({"id": rec.id, "action": d.action.value, "reason": d.reason,
+                            "new_price_krw": int(d.new_price_krw) if d.new_price_krw else None})
+        return changes
 
     # ── 집계 ─────────────────────────────────────────────────
     def stats(self) -> dict:

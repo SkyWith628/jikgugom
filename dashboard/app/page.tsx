@@ -6,6 +6,7 @@ import { api, type Listing, type Order, type Stats } from "@/lib/api";
 const LISTING_BADGE: Record<Listing["status"], string> = {
   ready: "bg-amber-100 text-amber-800",
   published: "bg-emerald-100 text-emerald-800",
+  paused: "bg-orange-100 text-orange-700",
   review: "bg-sky-100 text-sky-800",
   blocked: "bg-rose-100 text-rose-700",
   margin_rejected: "bg-zinc-200 text-zinc-600",
@@ -14,6 +15,7 @@ const LISTING_BADGE: Record<Listing["status"], string> = {
 const LISTING_LABEL: Record<Listing["status"], string> = {
   ready: "승인 대기",
   published: "발행됨",
+  paused: "일시중지",
   review: "검토 필요",
   blocked: "차단됨",
   margin_rejected: "마진 미달",
@@ -27,6 +29,7 @@ export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [sweepMsg, setSweepMsg] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -54,6 +57,24 @@ export default function Dashboard() {
     }
   }
 
+  async function runMonitor() {
+    setBusy(true);
+    setSweepMsg(null);
+    try {
+      const res = await api.runMonitor();
+      setSweepMsg(
+        res.changed === 0
+          ? "가격·재고 점검 완료 — 변동 없음"
+          : `가격·재고 점검: ${res.changed}건 반영 (${res.changes
+              .map((c) => `${c.id} ${c.action}`)
+              .join(", ")})`,
+      );
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
       <header className="flex items-center justify-between">
@@ -63,14 +84,29 @@ export default function Dashboard() {
             Amazon US → 네이버 스마트스토어 · 등록/발주 사람 승인
           </p>
         </div>
-        <button
-          onClick={() => act(api.runSourcing)}
-          disabled={busy}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-        >
-          {busy ? "처리 중…" : "소싱 실행"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={runMonitor}
+            disabled={busy}
+            className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            재고·가격 점검
+          </button>
+          <button
+            onClick={() => act(api.runSourcing)}
+            disabled={busy}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+          >
+            {busy ? "처리 중…" : "소싱 실행"}
+          </button>
+        </div>
       </header>
+
+      {sweepMsg && (
+        <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+          {sweepMsg}
+        </div>
+      )}
 
       {err && (
         <div className="mt-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -214,7 +250,7 @@ export default function Dashboard() {
       </section>
 
       <footer className="mt-10 text-center text-xs text-zinc-400">
-        sourcing-agent admin · 인메모리 데모 (DB·스케줄러는 Phase 3)
+        🐻 직구곰 admin · SQLite 영속 + 주기 점검 스케줄러 (발주 자동화는 Phase 3)
       </footer>
     </main>
   );

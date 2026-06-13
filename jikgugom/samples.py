@@ -48,6 +48,8 @@ class SampleSource(SourceAdapter):
     def __init__(self, catalog=None) -> None:
         self._catalog = catalog or SAMPLE_CATALOG
         self._by_id = {p.source_id: p for p in self._catalog}
+        self._price_override: dict = {}   # 모니터 점검 데모용: 원본가/재고 변동 시뮬레이션
+        self._out_of_stock: set = set()
 
     def fetch_bestsellers(self, category, *, limit=50):
         hit = [p for p in self._catalog if category in p.category_path]
@@ -58,8 +60,18 @@ class SampleSource(SourceAdapter):
 
     def check_availability(self, source_id):
         p = self._by_id[source_id]
-        return AvailabilitySnapshot(source_id, p.price, p.currency, True,
+        price = self._price_override.get(source_id, p.price)
+        in_stock = source_id not in self._out_of_stock
+        return AvailabilitySnapshot(source_id, price, p.currency, in_stock,
                                     datetime.now(timezone.utc))
+
+    # ── 데모/테스트용 변동 시뮬레이션 ────────────────────────
+    def set_source_price(self, source_id, price) -> None:
+        from decimal import Decimal
+        self._price_override[source_id] = Decimal(str(price))
+
+    def set_out_of_stock(self, source_id, oos: bool = True) -> None:
+        (self._out_of_stock.add if oos else self._out_of_stock.discard)(source_id)
 
 
 class SampleChannel(ChannelAdapter):

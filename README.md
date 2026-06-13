@@ -28,7 +28,8 @@
 | ③ CS 응대 에이전트 (`cs/`) | ✅ 구현 완료 (자동응답 + 민감건 결정론 에스컬레이션) |
 | 어드민 대시보드 (`api/` + `dashboard/`) | ✅ 구현 완료 (FastAPI + Next.js, 승인 버튼/발주 큐) |
 | DB 영속화 (`api/repository.py`+`db.py`) | ✅ 구현 완료 (Repository 추상화, SQLite/PostgreSQL) |
-| 스케줄러 / 발주 자동화 / 멀티채널 / 예측 ML | 로드맵 (Phase 3) |
+| 스케줄러 (`api/scheduler.py`) | ✅ 구현 완료 (APScheduler, 가격·재고 주기 점검 → pause/reprice/resume) |
+| 발주 자동화 / 멀티채널 / 예측 ML | 로드맵 (Phase 3) |
 
 ## 실행
 
@@ -67,9 +68,15 @@ npm --prefix dashboard run dev      # http://localhost:3000
 export DATABASE_URL=postgresql+psycopg://user:pw@host/db
 ```
 
+대시보드 헤더의 **재고·가격 점검** 버튼(또는 `MONITOR_INTERVAL_SECONDS` 주기 스케줄러)이
+발행 상품의 원본가·재고를 점검해 자동으로 일시중지/가격조정/재개한다.
+```bash
+export MONITOR_INTERVAL_SECONDS=300   # 자동 점검 주기(기본 300초, 0=수동만)
+```
+
 ### 레벨 3 — 상시 운영 (남은 갭)
-~~DB 영속화~~ ✅ · Celery 스케줄러(모니터/소싱 주기 실행) ·
-발주 자동화(`FulfillmentAdapter` 실구현) — Phase 3 로드맵. (대시보드·DB는 ✅ 완료)
+~~DB 영속화~~ ✅ · ~~스케줄러~~ ✅ ·
+발주 자동화(`FulfillmentAdapter` 실구현) — Phase 3 로드맵.
 
 ## 코드 구조
 
