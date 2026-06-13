@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* 어드민은 라이트 테마 고정 (다크 자동전환 비활성) */
+body {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
