@@ -24,6 +24,16 @@ class CostBreakdown:
 
 
 @dataclass(frozen=True)
+class ProfitCheck:
+    """고정 판매가 + 현재 원본가 기준 실수익 (발주 가드용)."""
+
+    profit_krw: Decimal
+    margin_rate: Decimal
+    final_cost_krw: Decimal
+    breakdown: "CostBreakdown"
+
+
+@dataclass(frozen=True)
 class MarginQuote:
     """마진 산출 결과. profit_krw가 음수면 등록 금지 신호."""
 

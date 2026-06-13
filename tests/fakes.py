@@ -114,3 +114,23 @@ class FakeChannelAdapter(ChannelAdapter):
 
     def fetch_orders(self, *, since: str | None = None) -> list[ChannelOrder]:
         return list(self._orders)
+
+
+class FakeFulfiller:
+    """인메모리 발주 어댑터 — 발주를 기록만 (실제 매입 없음)."""
+
+    name = "fake-amazon"
+
+    def __init__(self) -> None:
+        self.orders: list[tuple[str, int, dict]] = []
+        self._seq = 0
+
+    def place_order(self, source_id: str, quantity: int, shipping_address: dict):
+        from sourcing_agent.order.models import FulfillmentResult
+        self._seq += 1
+        self.orders.append((source_id, quantity, shipping_address))
+        return FulfillmentResult(fulfillment_id=f"AMZ{self._seq:06d}",
+                                 tracking_no=None, message="placed")
+
+    def track_shipment(self, fulfillment_id: str) -> str:
+        return "shipped"

@@ -22,14 +22,14 @@
 | 파이프라인 러너 (`pipeline/`) | ✅ 구현 완료 (오케스트레이션 + 승인 게이트) |
 | 소싱 평가 에이전트 (`evaluation/`) | ✅ 구현 완료 (stage 2.5, mock 모드, margin/compliance 재사용) |
 | 콘텐츠 에이전트 (`content/`) | ✅ 구현 완료 (ContentBuilder, DeepL+LLM 하이브리드, mock) |
-| CS 에이전트 | 로드맵 (Phase 2) |
-| 멀티채널 등록 / 발주 가드 | 로드맵 (Phase 2) |
+| 주문→발주 가드 (`order/`) | ✅ 구현 완료 (profit_at 재검증 → 자동발주/승인큐) |
+| CS 에이전트 / 멀티채널 | 로드맵 (Phase 2/3) |
 
 ## 실행
 
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만; anthropic/DeepL은 real 모드에서만
-python -m pytest -q   # 79 passed
+python -m pytest -q   # 85 passed
 # ANTHROPIC_API_KEY / DEEPL_API_KEY 없으면 에이전트는 자동 mock 모드 (키 없이 전체 동작)
 # 실 어댑터(Amazon/Naver)는 RAINFOREST/네이버 키 필요 — 매핑·인증은 canned 테스트로 검증
 ```
@@ -52,8 +52,10 @@ sourcing_agent/
 │   └── runner.py             # PipelineRunner (auto_publish=False=승인 게이트)
 ├── evaluation/               # ① 소싱 평가 에이전트 (stage 2.5, 시장성 점수)
 │   ├── agent.py  llm.py  tools.py  models.py  CLAUDE.md
-└── content/                  # ② 콘텐츠 에이전트 (ContentBuilder, 한글 초안 생성)
-    ├── agent.py  translator.py  llm.py  tools.py  CLAUDE.md
+├── content/                  # ② 콘텐츠 에이전트 (ContentBuilder, 한글 초안 생성)
+│   ├── agent.py  translator.py  llm.py  tools.py  CLAUDE.md
+└── order/                    # 주문→발주 가드 (Phase 2): profit_at 재검증
+    ├── processor.py  fulfiller.py  models.py  CLAUDE.md
 config/costs.yaml             # 비용 파라미터 (환율·관세·수수료)
 tests/                        # fakes.py + 계약/엔진 테스트
 ```
