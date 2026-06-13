@@ -1,2 +1,5 @@
 PyYAML>=6.0
 pytest>=8.0
+
+# 선택: 평가 에이전트 real 모드에서만 필요 (없으면 자동 mock 모드)
+# anthropic>=0.40

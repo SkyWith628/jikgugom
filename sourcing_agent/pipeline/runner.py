@@ -17,6 +17,8 @@ from typing import Callable
 from sourcing_agent.adapters.base import ChannelAdapter, SourceAdapter
 from sourcing_agent.compliance import ComplianceEngine
 from sourcing_agent.compliance.models import ComplianceResult, Verdict
+from sourcing_agent.evaluation import EvaluationAgent, Recommendation
+from sourcing_agent.evaluation.models import EvaluationResult
 from sourcing_agent.margin import MarginEngine
 from sourcing_agent.margin.models import MarginQuote
 from sourcing_agent.models import (
@@ -44,6 +46,7 @@ class PipelineOutcome:
     note: str
     compliance: ComplianceResult | None = None
     quote: MarginQuote | None = None
+    evaluation: EvaluationResult | None = None
     draft: ListingDraft | None = None
     publish: PublishResult | None = None
 
@@ -79,6 +82,7 @@ class PipelineRunner:
         channel: ChannelAdapter,
         compliance: ComplianceEngine | None = None,
         margin: MarginEngine | None = None,
+        evaluator: EvaluationAgent | None = None,
         content_builder: ContentBuilder = default_content_builder,
         config: PipelineConfig | None = None,
     ) -> None:
@@ -86,6 +90,7 @@ class PipelineRunner:
         self._ch = channel
         self._compliance = compliance or ComplianceEngine()
         self._margin = margin or MarginEngine()
+        self._evaluator = evaluator   # None이면 평가 단계 건너뜀(하위 호환)
         self._build_content = content_builder
         self._cfg = config or PipelineConfig()
 
@@ -127,6 +132,15 @@ class PipelineRunner:
             return PipelineOutcome(sid, ListingStatus.MARGIN_REJECTED,
                                    f"margin {quote.effective_margin_rate}", compliance=c, quote=quote)
 
+        # 2.5) 시장성 평가 (어드바이저). 돈 게이트 아님 — 단 SKIP은 사람 검토로 회부
+        ev: EvaluationResult | None = None
+        if self._evaluator is not None:
+            ev = self._evaluator.evaluate(product, quote)
+            if ev.recommendation is Recommendation.SKIP:
+                return PipelineOutcome(sid, ListingStatus.REVIEW,
+                                       f"low market fit ({ev.market_score})",
+                                       compliance=c, quote=quote, evaluation=ev)
+
         # 3) 콘텐츠 → ListingDraft
         category = self._ch.map_category(product.category_path)
         draft = self._build_content(product, quote, category)
@@ -134,10 +148,10 @@ class PipelineRunner:
         # 4) 발행 게이트
         if not auto_publish:
             return PipelineOutcome(sid, ListingStatus.READY, "awaiting approval",
-                                   compliance=c, quote=quote, draft=draft)
+                                   compliance=c, quote=quote, evaluation=ev, draft=draft)
 
         res = self._ch.publish(draft)
         status = (ListingStatus.PUBLISHED if res.status is PublishStatus.LISTED
                   else ListingStatus.PUBLISH_FAILED)
         return PipelineOutcome(sid, status, res.message or res.status.value,
-                               compliance=c, quote=quote, draft=draft, publish=res)
+                               compliance=c, quote=quote, evaluation=ev, draft=draft, publish=res)

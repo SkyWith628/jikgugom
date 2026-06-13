@@ -89,3 +89,38 @@ def test_one_bad_item_does_not_block_batch():
     out = _by_id(_runner().run("Best", pricing_channel="naver", fx_rate=FX))
     assert out["OK"].status is ListingStatus.READY
     assert len(out) == 4
+
+
+# ── 평가 에이전트 통합 (stage 2.5) ──────────────────────────
+def test_evaluator_attaches_score_to_ready(monkeypatch):
+    from sourcing_agent.evaluation import EvaluationAgent
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    catalog = [make_source_product("OK", title="Wireless Earbuds",
+                                   category_path=["Best", "Headphones"], price=Decimal("29"),
+                                   hs_code="8518.30", attributes={"rating": 4.7, "review_count": 900})]
+    runner = PipelineRunner(FakeSourceAdapter(catalog), FakeChannelAdapter(),
+                            evaluator=EvaluationAgent())
+    [o] = runner.run("Best", pricing_channel="naver", fx_rate=FX)
+    assert o.status is ListingStatus.READY
+    assert o.evaluation is not None and o.evaluation.market_score >= 0
+
+
+def test_skip_recommendation_routes_to_review(monkeypatch):
+    """시장성 낮은(SKIP) 상품은 자동 READY가 아니라 사람 검토로."""
+    from sourcing_agent.evaluation import EvaluationAgent
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    catalog = [make_source_product("DUD", title="Generic Widget",
+                                   category_path=["Best", "Misc"], price=Decimal("20"),
+                                   hs_code="3926.90", attributes={"rating": 1.5, "review_count": 3})]
+    runner = PipelineRunner(FakeSourceAdapter(catalog), FakeChannelAdapter(),
+                            evaluator=EvaluationAgent())
+    [o] = runner.run("Best", pricing_channel="naver", fx_rate=FX)
+    assert o.status is ListingStatus.REVIEW
+    assert o.evaluation.recommendation.value == "skip"
+
+
+def test_no_evaluator_is_backward_compatible():
+    """evaluator 미지정 시 평가 없이 기존과 동일하게 동작."""
+    [o] = [x for x in _runner().run("Best", pricing_channel="naver", fx_rate=FX)
+           if x.source_id == "OK"]
+    assert o.status is ListingStatus.READY and o.evaluation is None

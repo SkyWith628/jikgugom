@@ -20,14 +20,16 @@
 | 마진엔진 (`margin/`) | ✅ 구현 완료 (전 비용 모델 + 통관유형 분기) |
 | 모니터 워커 (`monitor/`) | ✅ 구현 완료 (폴링 → pause/reprice/resume) |
 | 파이프라인 러너 (`pipeline/`) | ✅ 구현 완료 (오케스트레이션 + 승인 게이트) |
-| 평가 에이전트 | 로드맵 (Phase 1) |
+| 소싱 평가 에이전트 (`evaluation/`) | ✅ 구현 완료 (stage 2.5, mock 모드, margin/compliance 재사용) |
+| 콘텐츠 / CS 에이전트 | 로드맵 (Phase 2) |
 | 멀티채널 등록 / 발주 가드 | 로드맵 (Phase 2) |
 
 ## 실행
 
 ```bash
-pip install -r requirements.txt
-python -m pytest -q   # 48 passed (계약10 + 컴플11 + 마진10 + 모니터9 + 파이프라인8)
+pip install -r requirements.txt          # 핵심은 PyYAML만; anthropic은 real 모드에서만
+python -m pytest -q   # 58 passed
+# ANTHROPIC_API_KEY 없으면 평가 에이전트는 자동 mock 모드 (키 없이 전체 동작)
 ```
 
 ## 코드 구조
@@ -44,8 +46,10 @@ sourcing_agent/
 │   ├── engine.py  config.py  models.py
 ├── monitor/                  # 가격·재고 폴링 → auto-pause/리프라이싱/재개
 │   ├── worker.py  models.py
-└── pipeline/                 # 소싱→컴플→마진→콘텐츠→등록 오케스트레이션
-    └── runner.py             # PipelineRunner (auto_publish=False=승인 게이트)
+├── pipeline/                 # 소싱→컴플→마진→[평가]→콘텐츠→등록 오케스트레이션
+│   └── runner.py             # PipelineRunner (auto_publish=False=승인 게이트)
+└── evaluation/               # 소싱 평가 에이전트 (stage 2.5, 시장성 점수)
+    ├── agent.py  llm.py  tools.py  models.py  CLAUDE.md
 config/costs.yaml             # 비용 파라미터 (환율·관세·수수료)
 tests/                        # fakes.py + 계약/엔진 테스트
 ```
