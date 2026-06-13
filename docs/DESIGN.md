@@ -219,7 +219,7 @@ Phase 3 — 고도화
 
 | 구성요소 | 상태 |
 |---|---|
-| Adapter 계약 + Amazon/Naver 골격 | ✅ 인터페이스 확정 + 계약 테스트 (`adapters/`) |
+| Adapter 계약 + Amazon/Naver **본체** | ✅ Rainforest/네이버 커머스 API 구현 (`adapters/`, 매핑·OAuth 테스트) |
 | **컴플라이언스 필터** | ✅ **구현 완료** (`compliance/`, [스펙](./COMPLIANCE_FILTER.md)) |
 | **마진엔진** | ✅ **구현 완료** (`margin/`, 전 비용 모델 + 통관유형 분기) |
 | **모니터 워커** | ✅ **구현 완료** (`monitor/`, 폴링 → pause/reprice/resume) |

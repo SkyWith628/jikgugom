@@ -1,5 +1,6 @@
 PyYAML>=6.0
 pytest>=8.0
 
-# 선택: 평가 에이전트 real 모드에서만 필요 (없으면 자동 mock 모드)
-# anthropic>=0.40
+# 선택: real 모드에서만 필요 (없으면 자동 mock 모드)
+# anthropic>=0.40   # 평가/콘텐츠 에이전트 real
+# bcrypt>=4.0       # 네이버 커머스 API OAuth 서명 (NaverSmartstoreAdapter real)

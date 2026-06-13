@@ -15,7 +15,7 @@
 
 | 구성요소 | 상태 |
 |---|---|
-| Adapter 계약 (`adapters/base.py`) + Amazon/Naver 골격 | ✅ 인터페이스 확정 + 계약 테스트 |
+| Adapter (`adapters/`) — Amazon(Rainforest)·Naver(커머스 API) | ✅ 본체 구현 (매핑·OAuth 서명 테스트) |
 | 컴플라이언스 필터 (`compliance/`) | ✅ 구현 완료 (룰 YAML + 엔진 + 테스트) |
 | 마진엔진 (`margin/`) | ✅ 구현 완료 (전 비용 모델 + 통관유형 분기) |
 | 모니터 워커 (`monitor/`) | ✅ 구현 완료 (폴링 → pause/reprice/resume) |
@@ -29,8 +29,9 @@
 
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만; anthropic/DeepL은 real 모드에서만
-python -m pytest -q   # 68 passed
+python -m pytest -q   # 79 passed
 # ANTHROPIC_API_KEY / DEEPL_API_KEY 없으면 에이전트는 자동 mock 모드 (키 없이 전체 동작)
+# 실 어댑터(Amazon/Naver)는 RAINFOREST/네이버 키 필요 — 매핑·인증은 canned 테스트로 검증
 ```
 
 ## 코드 구조
