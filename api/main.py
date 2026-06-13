@@ -41,7 +41,7 @@ def get_stats() -> dict:
 
 @app.get("/api/listings", response_model=list[ListingOut])
 def list_listings() -> list:
-    return list(service.store.listings.values())
+    return service.repo.list_listings()
 
 
 @app.post("/api/listings/{listing_id}/approve", response_model=ListingOut)
@@ -57,12 +57,12 @@ def approve_listing(listing_id: str):
 @app.post("/api/sourcing/run", response_model=list[ListingOut])
 def run_sourcing() -> list:
     service.run_sourcing()
-    return list(service.store.listings.values())
+    return service.repo.list_listings()
 
 
 @app.get("/api/orders", response_model=list[OrderOut])
 def list_orders() -> list:
-    return list(service.store.orders.values())
+    return service.repo.list_orders()
 
 
 @app.post("/api/orders/{order_id}/approve", response_model=OrderOut)

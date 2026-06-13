@@ -7,6 +7,10 @@ __pycache__/
 build/
 dist/
 
+# Database (local SQLite)
+*.db
+*.sqlite3
+
 # Test / cache
 .pytest_cache/
 .mypy_cache/

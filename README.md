@@ -27,7 +27,8 @@
 | 주문→발주 가드 (`order/`) | ✅ 구현 완료 (profit_at 재검증 → 자동발주/승인큐) |
 | ③ CS 응대 에이전트 (`cs/`) | ✅ 구현 완료 (자동응답 + 민감건 결정론 에스컬레이션) |
 | 어드민 대시보드 (`api/` + `dashboard/`) | ✅ 구현 완료 (FastAPI + Next.js, 승인 버튼/발주 큐) |
-| DB 영속화 / 스케줄러 / 멀티채널 / 예측 ML | 로드맵 (Phase 3) |
+| DB 영속화 (`api/repository.py`+`db.py`) | ✅ 구현 완료 (Repository 추상화, SQLite/PostgreSQL) |
+| 스케줄러 / 발주 자동화 / 멀티채널 / 예측 ML | 로드맵 (Phase 3) |
 
 ## 실행
 
@@ -59,11 +60,16 @@ python -m uvicorn api.main:app --port 8000 --reload
 npm --prefix dashboard install      # 최초 1회
 npm --prefix dashboard run dev      # http://localhost:3000
 ```
-인메모리 저장소라 서버 재시작 시 초기화(데모). 백엔드 미실행 시 프론트가 안내 배너 표시.
+상태는 **SQLite 파일(`jikgugom.db`)에 영속** — 재시작해도 승인 내역이 유지된다.
+저장소는 `Repository` 인터페이스로 추상화(인메모리 ↔ SQL 교체).
+```bash
+# 기본: SQLite 파일. PostgreSQL로 전환하려면:
+export DATABASE_URL=postgresql+psycopg://user:pw@host/db
+```
 
 ### 레벨 3 — 상시 운영 (남은 갭)
-DB 영속화 · Celery 스케줄러(모니터/소싱 주기 실행) ·
-발주 자동화(`FulfillmentAdapter` 실구현) — Phase 3 로드맵. (대시보드는 ✅ 완료)
+~~DB 영속화~~ ✅ · Celery 스케줄러(모니터/소싱 주기 실행) ·
+발주 자동화(`FulfillmentAdapter` 실구현) — Phase 3 로드맵. (대시보드·DB는 ✅ 완료)
 
 ## 코드 구조
 
