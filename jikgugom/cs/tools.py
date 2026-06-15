@@ -21,6 +21,7 @@ STATUS_LABEL: dict[OrderStatus, str] = {
 
 # 배송 원시 단계(track_shipment) → 한국어
 SHIPMENT_LABEL: dict[str, str] = {
+    "awaiting_purchase": "발주 준비 중", "purchased": "발주 완료",
     "ordered": "발주 완료", "shipped": "배송 중",
     "customs": "통관 중", "delivered": "배송 완료",
 }

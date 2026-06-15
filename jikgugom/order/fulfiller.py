@@ -17,8 +17,15 @@ class FulfillmentAdapter(ABC):
 
     @abstractmethod
     def place_order(self, source_id: str, quantity: int,
-                    shipping_address: dict) -> FulfillmentResult:
-        """원본(Amazon)에 발주. 멱등키로 중복발주(이중결제) 방지 권장."""
+                    shipping_address: dict, *,
+                    idempotency_key: str) -> FulfillmentResult:
+        """원본(Amazon)에 발주.
+
+        Args:
+            idempotency_key: 같은 주문의 재시도를 식별하는 멱등키(= channel_order_no).
+                구현체는 이 키로 중복발주(이중결제)를 막아야 한다 — 비가역(돈)이므로.
+                같은 키로 다시 호출되면 새 매입 없이 기존 결과를 그대로 돌려준다.
+        """
 
     @abstractmethod
     def track_shipment(self, fulfillment_id: str) -> str:

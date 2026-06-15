@@ -117,20 +117,26 @@ class FakeChannelAdapter(ChannelAdapter):
 
 
 class FakeFulfiller:
-    """인메모리 발주 어댑터 — 발주를 기록만 (실제 매입 없음)."""
+    """인메모리 발주 어댑터 — 발주를 기록만 (실제 매입 없음). 멱등키로 중복발주 차단."""
 
     name = "fake-amazon"
 
     def __init__(self) -> None:
         self.orders: list[tuple[str, int, dict]] = []
+        self._by_key: dict[str, object] = {}
         self._seq = 0
 
-    def place_order(self, source_id: str, quantity: int, shipping_address: dict):
+    def place_order(self, source_id: str, quantity: int, shipping_address: dict, *,
+                    idempotency_key: str):
         from jikgugom.order.models import FulfillmentResult
+        if idempotency_key in self._by_key:
+            return self._by_key[idempotency_key]   # 멱등: 새 매입 없음
         self._seq += 1
         self.orders.append((source_id, quantity, shipping_address))
-        return FulfillmentResult(fulfillment_id=f"AMZ{self._seq:06d}",
-                                 tracking_no=None, message="placed")
+        result = FulfillmentResult(fulfillment_id=f"AMZ{self._seq:06d}",
+                                   tracking_no=None, message="placed")
+        self._by_key[idempotency_key] = result
+        return result
 
     def track_shipment(self, fulfillment_id: str) -> str:
         return "shipped"

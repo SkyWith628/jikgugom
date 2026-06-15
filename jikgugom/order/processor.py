@@ -87,7 +87,9 @@ class OrderProcessor:
         if guard.action is GuardAction.APPROVAL_REQUIRED or not auto_order:
             return OrderOutcome(order.channel_order_no, OrderStatus.PENDING_APPROVAL, guard)
 
+        # 멱등키 = channel_order_no: 같은 채널주문은 재시도해도 한 번만 매입
         result = self._fulfiller.place_order(
-            ctx.source_id, order.quantity, order.shipping_address)
+            ctx.source_id, order.quantity, order.shipping_address,
+            idempotency_key=order.channel_order_no)
         return OrderOutcome(order.channel_order_no, OrderStatus.AMAZON_ORDERED,
                             guard, fulfillment=result)
