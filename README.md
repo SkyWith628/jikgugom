@@ -8,6 +8,14 @@
 
 > 돈이 직접 오가는 구간은 **결정론적 파이프라인**, 애매한 판단(시장성·CS)만 **에이전트**.
 
+## 🔧 기술적 도전과 해결
+
+| 문제 | 고민 | 해결 |
+|---|---|---|
+| **자동화 vs 안전성** — 잘못 등록하면 적자 매입·통관 불가 상품처럼 돈·법적 사고로 직결 | 어디까지 LLM에 맡길 것인가. 환각으로 마진을 잘못 계산하면 그대로 손실 | **신뢰 경계를 "돈/규제"에 긋고** 마진·통관·KC인증은 전부 결정론 코드로 확정, LLM은 시장성·콘텐츠·CS 같은 정성판단만 담당 |
+| **이중 발주 위험** — 같은 주문이 두 번 발주되면 이중 매입 | 네트워크 재시도·중복 이벤트를 어떻게 막나 | 발주를 **멱등 원장(ledger)**에 기록해 중복 차단 + 발주 직전 `profit_at` 마진 재검증, 적자면 사람이 승인(HITL) |
+| **벤더 종속** — Amazon·네이버 API가 언제든 바뀌거나 교체될 수 있음 | 한 벤더에 코드가 묶이면 확장·교체가 불가능 | 소스/채널/저장소를 **Adapter·Repository(ABC)로 추상화** — Rainforest→PA-API, 네이버→쿠팡, SQLite→PostgreSQL을 코드 변경 없이 교체 |
+
 ## 문서
 
 - [`docs/DESIGN.md`](./docs/DESIGN.md) — 시스템 청사진 (재설계 확정본, 벤치마킹 반영)
@@ -109,4 +117,4 @@ tests/                        # fakes.py + 계약/엔진 테스트
 
 ## 스택
 
-Python · FastAPI · Celery · PostgreSQL · Redis · S3/CDN
+Python · FastAPI · SQLAlchemy · APScheduler · Claude (Anthropic) · DeepL · Next.js 16 / React 19 · 네이버 커머스 API · pytest · SQLite/PostgreSQL
