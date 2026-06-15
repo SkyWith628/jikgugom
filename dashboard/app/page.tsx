@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, type Config, type Listing, type Order, type Publication, type Stats } from "@/lib/api";
+import {
+  api,
+  getToken,
+  logout,
+  UnauthorizedError,
+  type Config,
+  type Listing,
+  type Order,
+  type Publication,
+  type Stats,
+} from "@/lib/api";
+import Login from "./Login";
 
 const MODE_LABEL: Record<string, string> = {
   aliexpress: "AliExpress",
@@ -63,18 +74,27 @@ export default function Dashboard() {
   const [err, setErr] = useState<string | null>(null);
   const [sweepMsg, setSweepMsg] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<Order | null>(null);
+  const [needLogin, setNeedLogin] = useState(false);
 
   async function load() {
     try {
       setErr(null);
-      const [s, l, o, c] = await Promise.all([
-        api.stats(), api.listings(), api.orders(), api.config(),
-      ]);
+      const c = await api.config(); // 공개: 인증 활성 여부 확인
+      setConfig(c);
+      if (c.auth_enabled && !getToken()) {
+        setNeedLogin(true);
+        return;
+      }
+      const [s, l, o] = await Promise.all([api.stats(), api.listings(), api.orders()]);
       setStats(s);
       setListings(l);
       setOrders(o);
-      setConfig(c);
-    } catch {
+      setNeedLogin(false);
+    } catch (e) {
+      if (e instanceof UnauthorizedError) {
+        setNeedLogin(true);
+        return;
+      }
       setErr("백엔드(http://localhost:8000)에 연결할 수 없습니다. uvicorn 실행 중인지 확인하세요.");
     }
   }
@@ -88,6 +108,8 @@ export default function Dashboard() {
     try {
       await fn();
       await load();
+    } catch (e) {
+      if (e instanceof UnauthorizedError) setNeedLogin(true);
     } finally {
       setBusy(false);
     }
@@ -109,6 +131,10 @@ export default function Dashboard() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (needLogin && config?.google_client_id) {
+    return <Login clientId={config.google_client_id} />;
   }
 
   return (
@@ -153,6 +179,14 @@ export default function Dashboard() {
           >
             {busy ? "처리 중…" : "소싱 실행"}
           </button>
+          {config?.auth_enabled && (
+            <button
+              onClick={() => { logout(); window.location.reload(); }}
+              className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-500 hover:bg-zinc-50"
+            >
+              로그아웃
+            </button>
+          )}
         </div>
       </header>
 

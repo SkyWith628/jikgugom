@@ -1,0 +1,34 @@
+# 직구곰 배포 — 백엔드(FastAPI) + 프론트(Next.js) + SQLite 볼륨 한 묶음.
+#   docker compose up -d --build
+# 환경변수는 .env 에서 읽는다(.env.example 참고). 공개 URL은 PUBLIC_* 로 지정.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # 볼륨 경로 강제(.env의 DATABASE_URL보다 우선)
+      DATABASE_URL: sqlite:////data/jikgugom.db
+    volumes:
+      - jikgugom_data:/data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+      args:
+        # 브라우저가 접근할 백엔드 공개 URL (예: https://api.example.com)
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  jikgugom_data:

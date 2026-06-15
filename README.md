@@ -12,6 +12,7 @@
 
 - [`docs/DESIGN.md`](./docs/DESIGN.md) — 시스템 청사진 (재설계 확정본, 벤치마킹 반영)
 - [`docs/COMPLIANCE_FILTER.md`](./docs/COMPLIANCE_FILTER.md) — 컴플라이언스 필터 상세 스펙 (우선 구현)
+- [`DEPLOY.md`](./DEPLOY.md) — Docker 배포 + 관리자 로그인(Google OAuth) 가이드
 
 ## 현황
 
@@ -30,6 +31,8 @@
 | 운영자 매입확정 UI (`api/` + `dashboard/`) | ✅ 구현 완료 (매입확정 모달 → PURCHASED, 주문번호·송장 기록) |
 | ③ CS 응대 에이전트 (`cs/`) | ✅ 구현 완료 (자동응답 + 민감건 결정론 에스컬레이션) |
 | 어드민 대시보드 (`api/` + `dashboard/`) | ✅ 구현 완료 (FastAPI + Next.js, 승인 버튼/발주 큐/매입확정) |
+| 관리자 인증 (`api/auth.py`) | ✅ 구현 완료 (Google OAuth + 세션 JWT, 라우트 보호, 로그인 게이트) |
+| Docker 배포 (`Dockerfile`·`docker-compose.yml`) | ✅ 구성 완료 (백+프+SQLite 볼륨 한 묶음, [DEPLOY.md](./DEPLOY.md)) |
 | DB 영속화 (`api/repository.py`+`db.py`) | ✅ 구현 완료 (Repository 추상화, SQLite/PostgreSQL) |
 | 스케줄러 (`api/scheduler.py`) | ✅ 구현 완료 (APScheduler, 가격·재고 주기 점검 → pause/reprice/resume) |
 | 멀티채널 동시등록 (`pipeline/multichannel.py`) | ✅ 구현 완료 (`MultiChannelPublisher`, naver+coupang 팬아웃 + 채널별 발행 추적) |
@@ -43,7 +46,7 @@
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만
 python -m jikgugom.demo            # 샘플 카탈로그로 전체 흐름 1회 실행(mock)
-python -m pytest -q                       # 170 passed
+python -m pytest -q                       # 194 passed
 ```
 
 ### 레벨 2 — 실 API 키로 동작 (코드 수정 0)

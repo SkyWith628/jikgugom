@@ -13,11 +13,14 @@
 from __future__ import annotations
 
 import os
+import secrets
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 SUPPORTED_CHANNELS = ("naver", "coupang")
+DEFAULT_CORS = ("http://localhost:3000", "http://127.0.0.1:3000",
+                "http://localhost:3100", "http://127.0.0.1:3100")
 
 
 class ConfigError(RuntimeError):
@@ -77,12 +80,22 @@ class Settings:
     amazon_domain: str = "amazon.com"
     database_url: str = "sqlite:///./jikgugom.db"
     monitor_interval_seconds: int = 300
+    # ── 인증(관리자 로그인, Google OAuth) ────────────────────
+    google_client_id: str | None = None       # 없으면 인증 비활성(로컬 개발 편의)
+    admin_allowed_emails: tuple[str, ...] = ()  # 로그인 허용 이메일 화이트리스트(소문자)
+    session_secret: str = field(default_factory=lambda: secrets.token_hex(32))
+    cors_origins: tuple[str, ...] = DEFAULT_CORS
 
     # ── 파생 ─────────────────────────────────────────────────
     @property
     def primary_channel(self) -> str:
         """가격기준·모니터 키잉의 기준 채널. naver 우선, 없으면 첫 채널."""
         return "naver" if "naver" in self.channels else self.channels[0]
+
+    @property
+    def auth_enabled(self) -> bool:
+        """관리자 인증 활성 여부 — client_id와 허용 이메일이 모두 있어야 켜짐."""
+        return bool(self.google_client_id and self.admin_allowed_emails)
 
     def validate(self) -> None:
         """일관성 검증 — 부분 설정/잘못된 값이면 즉시 ConfigError(fail-fast)."""
@@ -136,6 +149,11 @@ def load_settings() -> Settings:
     channels_raw = os.getenv("SALES_CHANNELS", "naver,coupang")
     channels = tuple(c.strip() for c in channels_raw.split(",") if c.strip())
 
+    emails_raw = os.getenv("ADMIN_ALLOWED_EMAILS", "")
+    emails = tuple(e.strip().lower() for e in emails_raw.split(",") if e.strip())
+    cors_raw = os.getenv("CORS_ORIGINS", "")
+    cors = tuple(o.strip() for o in cors_raw.split(",") if o.strip()) or DEFAULT_CORS
+
     try:
         interval = int(os.getenv("MONITOR_INTERVAL_SECONDS", "300"))
     except ValueError as e:
@@ -156,6 +174,10 @@ def load_settings() -> Settings:
         amazon_domain=os.getenv("AMAZON_DOMAIN", "amazon.com"),
         database_url=os.getenv("DATABASE_URL", "sqlite:///./jikgugom.db"),
         monitor_interval_seconds=interval,
+        google_client_id=g("GOOGLE_CLIENT_ID"),
+        admin_allowed_emails=emails,
+        session_secret=os.getenv("SESSION_SECRET") or secrets.token_hex(32),
+        cors_origins=cors,
     )
 
 

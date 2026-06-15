@@ -193,13 +193,22 @@ class DashboardService:
 
     # ── 운영 설정/모드 가시화 ────────────────────────────────
     def config(self) -> dict:
-        """현재 어댑터·LLM 모드(real/mock)와 운영 파라미터 — 키 노출 없음."""
+        """현재 어댑터·LLM 모드(real/mock)와 운영 파라미터 — 키 노출 없음.
+
+        google_client_id는 프론트 Google 로그인 버튼에 필요한 공개값이라 포함한다.
+        """
         return {
             "modes": self.modes,
             "fx_rate": str(self._fx),
             "channels": list(self._settings.channels),
             "sourcing_category": self._settings.sourcing_category,
+            "auth_enabled": self._settings.auth_enabled,
+            "google_client_id": self._settings.google_client_id,
         }
+
+    @property
+    def settings(self) -> Settings:
+        return self._settings
 
     # ── 집계 ─────────────────────────────────────────────────
     def stats(self) -> dict:

@@ -44,6 +44,12 @@ class ConfirmPurchaseIn(BaseModel):
     tracking_no: str | None = None
 
 
+class GoogleAuthIn(BaseModel):
+    """Google 로그인 → 프론트가 받은 ID 토큰(credential)."""
+
+    credential: str
+
+
 class StatsOut(BaseModel):
     listings_total: int
     by_status: dict[str, int]

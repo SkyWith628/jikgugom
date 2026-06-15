@@ -54,30 +54,61 @@ export type Config = {
   fx_rate: string;
   channels: string[];
   sourcing_category: string;
+  auth_enabled: boolean;
+  google_client_id: string | null;
 };
 
-async function req<T>(path: string, method: "GET" | "POST" = "GET"): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { method, cache: "no-store" });
-  if (!res.ok) throw new Error(`${method} ${path} → ${res.status}`);
+// ── 세션 토큰(관리자 로그인) ──────────────────────────────────
+const TOKEN_KEY = "jikgugom_admin_token";
+export const getToken = (): string | null =>
+  typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY);
+export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t);
+export const logout = () => localStorage.removeItem(TOKEN_KEY);
+
+export class UnauthorizedError extends Error {}
+
+function authHeaders(): Record<string, string> {
+  const t = getToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+async function handle<T>(res: Response, label: string): Promise<T> {
+  if (res.status === 401) {
+    logout(); // 만료/무효 토큰 → 로그인 화면으로 되돌리기
+    throw new UnauthorizedError("세션이 만료되었습니다. 다시 로그인하세요.");
+  }
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.detail ?? `${label} → ${res.status}`);
+  }
   return res.json();
+}
+
+async function req<T>(path: string, method: "GET" | "POST" = "GET"): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method, cache: "no-store", headers: authHeaders(),
+  });
+  return handle<T>(res, `${method} ${path}`);
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  if (!res.ok) {
-    const detail = await res.json().catch(() => null);
-    throw new Error(detail?.detail ?? `POST ${path} → ${res.status}`);
-  }
-  return res.json();
+  return handle<T>(res, `POST ${path}`);
 }
 
 export const api = {
   config: () => req<Config>("/api/config"),
+  loginWithGoogle: async (credential: string) => {
+    const r = await post<{ token: string; email: string }>(
+      "/api/auth/google", { credential });
+    setToken(r.token);
+    return r;
+  },
   stats: () => req<Stats>("/api/stats"),
   listings: () => req<Listing[]>("/api/listings"),
   orders: () => req<Order[]>("/api/orders"),
