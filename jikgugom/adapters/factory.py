@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from jikgugom.adapters.aliexpress import AliExpressAdapter
 from jikgugom.adapters.amazon import AmazonRainforestAdapter
 from jikgugom.adapters.base import ChannelAdapter, SourceAdapter
 from jikgugom.adapters.naver import NaverSmartstoreAdapter
@@ -33,14 +34,19 @@ def build_adapters(settings: Settings) -> Adapters:
     """설정에 따라 소스/채널 어댑터를 조립. 키 있으면 real, 없으면 mock."""
     modes: dict[str, str] = {}
 
-    # ── 소스(Amazon) ─────────────────────────────────────────
-    if settings.rainforest_api_key:
-        source: SourceAdapter = AmazonRainforestAdapter(
+    # ── 소스 선택: AliExpress(1차) → Amazon(대체) → mock ──────
+    if settings.aliexpress_app_key and settings.aliexpress_app_secret:
+        source: SourceAdapter = AliExpressAdapter(
+            settings.aliexpress_app_key, settings.aliexpress_app_secret,
+            tracking_id=settings.aliexpress_tracking_id)
+        modes["aliexpress"] = "real"
+    elif settings.rainforest_api_key:
+        source = AmazonRainforestAdapter(
             settings.rainforest_api_key, domain=settings.amazon_domain)
         modes["amazon"] = "real"
     else:
         source = SampleSource()
-        modes["amazon"] = "mock"
+        modes["aliexpress"] = "mock"   # 기본 소스는 AliExpress(키 없으면 샘플 카탈로그)
 
     # ── 채널(naver/coupang) ──────────────────────────────────
     channels: list[ChannelAdapter] = []

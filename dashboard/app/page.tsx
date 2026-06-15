@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { api, type Config, type Listing, type Order, type Publication, type Stats } from "@/lib/api";
 
 const MODE_LABEL: Record<string, string> = {
+  aliexpress: "AliExpress",
   amazon: "Amazon",
   naver: "네이버",
   coupang: "쿠팡",
-  anthropic: "LLM",
+  gemini: "AI(Gemini)",
   deepl: "번역",
 };
 
@@ -116,7 +117,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">🐻 직구곰 어드민</h1>
           <p className="text-sm text-zinc-500">
-            Amazon US → 네이버 스마트스토어 · 등록/발주 사람 승인
+            AliExpress → 네이버 스마트스토어 · 등록/발주 사람 승인
           </p>
           {config && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">

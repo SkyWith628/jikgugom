@@ -94,7 +94,7 @@ def test_one_bad_item_does_not_block_batch():
 # ── 평가 에이전트 통합 (stage 2.5) ──────────────────────────
 def test_evaluator_attaches_score_to_ready(monkeypatch):
     from jikgugom.evaluation import EvaluationAgent
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     catalog = [make_source_product("OK", title="Wireless Earbuds",
                                    category_path=["Best", "Headphones"], price=Decimal("29"),
                                    hs_code="8518.30", attributes={"rating": 4.7, "review_count": 900})]
@@ -108,7 +108,7 @@ def test_evaluator_attaches_score_to_ready(monkeypatch):
 def test_skip_recommendation_routes_to_review(monkeypatch):
     """시장성 낮은(SKIP) 상품은 자동 READY가 아니라 사람 검토로."""
     from jikgugom.evaluation import EvaluationAgent
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     catalog = [make_source_product("DUD", title="Generic Widget",
                                    category_path=["Best", "Misc"], price=Decimal("20"),
                                    hs_code="3926.90", attributes={"rating": 1.5, "review_count": 3})]
@@ -130,7 +130,7 @@ def test_no_evaluator_is_backward_compatible():
 def test_content_agent_as_builder(monkeypatch):
     """ContentAgent.build를 content_builder로 주입하면 한글 초안이 생성된다."""
     from jikgugom.content import ContentAgent
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("DEEPL_API_KEY", raising=False)
     catalog = [make_source_product("OK", title="Wireless Earbuds",
                                    category_path=["Best", "Headphones"], price=Decimal("29"),

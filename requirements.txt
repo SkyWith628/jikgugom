@@ -6,5 +6,5 @@ SQLAlchemy>=2.0    # 영속화 (SQLite 기본 / PostgreSQL 전환)
 APScheduler>=3.10  # 가격·재고 점검 주기 실행(인프로세스 스케줄러)
 
 # 선택: real 모드에서만 필요 (없으면 자동 mock 모드)
-# anthropic>=0.40   # 평가/콘텐츠 에이전트 real
+# 평가/콘텐츠/CS LLM은 Gemini REST 호출 → 추가 SDK 불필요(GEMINI_API_KEY만).
 # bcrypt>=4.0       # 네이버 커머스 API OAuth 서명 (NaverSmartstoreAdapter real)

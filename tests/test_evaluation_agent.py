@@ -14,12 +14,12 @@ from tests.fakes import make_source_product
 
 
 def test_mock_mode_without_api_key(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     assert EvaluationAgent().mode == "mock"
 
 
 def test_evaluate_is_deterministic_in_mock(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     agent = EvaluationAgent()
     p = make_source_product(attributes={"rating": 4.6, "review_count": 800})
     a = agent.evaluate(p)
@@ -29,7 +29,7 @@ def test_evaluate_is_deterministic_in_mock(monkeypatch):
 
 
 def test_high_rating_scores_higher_than_low(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     agent = EvaluationAgent()
     good = make_source_product("G", attributes={"rating": 4.8, "review_count": 1000})
     bad = make_source_product("B", attributes={"rating": 2.0, "review_count": 1000})
@@ -59,7 +59,7 @@ def test_real_mode_falls_back_on_llm_failure(monkeypatch):
     llm = LLM.__new__(LLM)          # __init__ 우회
     llm._model = "x"
     llm.mode = "real"
-    monkeypatch.setattr(llm, "_call_anthropic",
+    monkeypatch.setattr(llm, "_call_llm",
                         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     signals = MarketSignals(4.0, 100, 0.7, 0.6, 0.3)
     res = llm.score_market_fit(make_source_product(), signals)

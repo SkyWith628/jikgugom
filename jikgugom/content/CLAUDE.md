@@ -8,7 +8,7 @@
 1. **가격 재계산 금지.** `quote.sale_price_krw` 를 받아 그대로 넣는다. 마진은 바깥에서 결정됨.
 2. **하이브리드 번역.** 본문=DeepL(`translator.py`), 제목/키워드=LLM(`llm.py`). 비용·품질 균형.
 3. **이미지는 CDN 재호스팅.** 원본 핫링크 금지(저작권) → `rehost_images`. 현재 mock.
-4. **키 없이도 돈다.** `DEEPL_API_KEY`/`ANTHROPIC_API_KEY` 없으면 mock(glossary/템플릿).
+4. **키 없이도 돈다.** `DEEPL_API_KEY`/`GEMINI_API_KEY` 없으면 mock(glossary/템플릿).
    real 실패 시에도 mock 폴백 → 파이프라인이 끊기지 않는다.
 
 ## 파일 구조
@@ -17,7 +17,7 @@
 content/
 ├── tools.py       # 순수함수: glossary 번역/키워드/이미지재호스팅/HTML조립 + GLOSSARY
 ├── translator.py  # 본문 번역: DeepL(real) / glossary(mock)
-├── llm.py         # 제목 생성: Anthropic(real) / 템플릿(mock)
+├── llm.py         # 제목 생성: Gemini(real) / 템플릿(mock)
 └── agent.py       # ContentAgent.build(product, quote, category) → ListingDraft
 ```
 
@@ -44,4 +44,4 @@ build(product, quote, category):
 
 ## 보안
 
-- DeepL/Anthropic 키는 환경변수로만. 코드·깃 커밋 금지.
+- DeepL/Gemini 키는 환경변수로만. 코드·깃 커밋 금지.

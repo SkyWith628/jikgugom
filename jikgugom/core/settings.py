@@ -50,16 +50,25 @@ def _load_dotenv(path: str = ".env") -> None:
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, val = line.partition("=")
-        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+        key = key.strip()
+        val = val.strip()
+        if val[:1] in ('"', "'"):           # 따옴표 값은 그대로(내부 # 보존)
+            val = val.strip('"').strip("'")
+        else:                                # 따옴표 없으면 # 이후는 인라인 주석
+            val = val.split("#", 1)[0].strip()
+        os.environ.setdefault(key, val)
 
 
 @dataclass(frozen=True)
 class Settings:
     # ── 외부 API 키 (없으면 해당 레이어는 자동 mock) ──────────
-    rainforest_api_key: str | None = None     # Amazon 소싱
+    aliexpress_app_key: str | None = None     # AliExpress 소싱(1차)
+    aliexpress_app_secret: str | None = None
+    aliexpress_tracking_id: str = "default"   # 제휴 추적 ID(PID)
+    rainforest_api_key: str | None = None     # Amazon 소싱(대체)
     naver_client_id: str | None = None        # 네이버 커머스 API
     naver_client_secret: str | None = None
-    anthropic_api_key: str | None = None      # 평가/콘텐츠/CS LLM
+    gemini_api_key: str | None = None         # 평가/콘텐츠/CS LLM (Google Gemini)
     deepl_api_key: str | None = None          # 본문 번역
     # ── 운영 파라미터 ────────────────────────────────────────
     fx_rate: Decimal = Decimal("1380")        # USD→KRW (실시간 연동은 후속)
@@ -77,6 +86,10 @@ class Settings:
 
     def validate(self) -> None:
         """일관성 검증 — 부분 설정/잘못된 값이면 즉시 ConfigError(fail-fast)."""
+        if bool(self.aliexpress_app_key) != bool(self.aliexpress_app_secret):
+            raise ConfigError(
+                "AliExpress는 ALIEXPRESS_APP_KEY와 ALIEXPRESS_APP_SECRET을 함께 설정해야 "
+                "합니다 (현재 하나만 설정됨 → real 전환 불가).")
         if bool(self.naver_client_id) != bool(self.naver_client_secret):
             raise ConfigError(
                 "네이버는 NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 함께 설정해야 합니다 "
@@ -93,10 +106,12 @@ class Settings:
     def masked(self) -> dict:
         """로그/디버그용 — 키를 가린 설정 스냅샷."""
         return {
+            "aliexpress_app_key": mask_secret(self.aliexpress_app_key),
+            "aliexpress_app_secret": mask_secret(self.aliexpress_app_secret),
             "rainforest_api_key": mask_secret(self.rainforest_api_key),
             "naver_client_id": mask_secret(self.naver_client_id),
             "naver_client_secret": mask_secret(self.naver_client_secret),
-            "anthropic_api_key": mask_secret(self.anthropic_api_key),
+            "gemini_api_key": mask_secret(self.gemini_api_key),
             "deepl_api_key": mask_secret(self.deepl_api_key),
             "fx_rate": str(self.fx_rate),
             "channels": list(self.channels),
@@ -127,10 +142,13 @@ def load_settings() -> Settings:
         raise ConfigError("MONITOR_INTERVAL_SECONDS는 정수여야 합니다") from e
 
     return Settings(
+        aliexpress_app_key=g("ALIEXPRESS_APP_KEY"),
+        aliexpress_app_secret=g("ALIEXPRESS_APP_SECRET"),
+        aliexpress_tracking_id=os.getenv("ALIEXPRESS_TRACKING_ID", "default"),
         rainforest_api_key=g("RAINFOREST_API_KEY"),
         naver_client_id=g("NAVER_CLIENT_ID"),
         naver_client_secret=g("NAVER_CLIENT_SECRET"),
-        anthropic_api_key=g("ANTHROPIC_API_KEY"),
+        gemini_api_key=g("GEMINI_API_KEY"),
         deepl_api_key=g("DEEPL_API_KEY"),
         fx_rate=fx_rate,
         sourcing_category=os.getenv("SOURCING_CATEGORY", "Best"),
@@ -144,6 +162,6 @@ def load_settings() -> Settings:
 def llm_modes(settings: Settings) -> dict[str, str]:
     """LLM/번역 레이어의 real/mock 상태(가시화용). 키 유무로 결정."""
     return {
-        "anthropic": "real" if settings.anthropic_api_key else "mock",
+        "gemini": "real" if settings.gemini_api_key else "mock",
         "deepl": "real" if settings.deepl_api_key else "mock",
     }

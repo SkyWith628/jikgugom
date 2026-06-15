@@ -11,7 +11,7 @@ from jikgugom.order.models import OrderStatus
 
 @pytest.fixture(autouse=True)
 def _no_key(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
 
 
 def _ctx(status=OrderStatus.SHIPPED) -> CSContext:

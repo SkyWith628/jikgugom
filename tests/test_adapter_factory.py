@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from jikgugom.adapters.aliexpress import AliExpressAdapter
 from jikgugom.adapters.amazon import AmazonRainforestAdapter
 from jikgugom.adapters.factory import build_adapters
 from jikgugom.adapters.naver import NaverSmartstoreAdapter
@@ -15,12 +16,24 @@ from jikgugom.samples import SampleChannel, SampleCoupangChannel, SampleSource
 def test_no_keys_builds_all_mock():
     a = build_adapters(Settings())
     assert isinstance(a.source, SampleSource)
-    assert a.modes["amazon"] == "mock" and a.modes["naver"] == "mock"
+    assert a.modes["aliexpress"] == "mock" and a.modes["naver"] == "mock"
     naver = next(c for c in a.channels if c.name == "naver")
     assert isinstance(naver, SampleChannel)
 
 
-def test_rainforest_key_builds_real_source():
+def test_aliexpress_keys_build_real_source():
+    a = build_adapters(Settings(aliexpress_app_key="ak", aliexpress_app_secret="as"))
+    assert isinstance(a.source, AliExpressAdapter)
+    assert a.modes["aliexpress"] == "real"
+
+
+def test_aliexpress_takes_priority_over_amazon():
+    a = build_adapters(Settings(aliexpress_app_key="ak", aliexpress_app_secret="as",
+                                rainforest_api_key="rk"))
+    assert isinstance(a.source, AliExpressAdapter)   # AliExpress가 1차
+
+
+def test_rainforest_key_builds_real_source_when_no_aliexpress():
     a = build_adapters(Settings(rainforest_api_key="rk"))
     assert isinstance(a.source, AmazonRainforestAdapter)
     assert a.modes["amazon"] == "real"

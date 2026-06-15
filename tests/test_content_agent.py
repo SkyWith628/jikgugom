@@ -35,7 +35,7 @@ def _cat() -> ChannelCategory:
 
 @pytest.fixture(autouse=True)
 def _no_keys(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("DEEPL_API_KEY", raising=False)
 
 

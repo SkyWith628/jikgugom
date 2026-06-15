@@ -1,8 +1,8 @@
 # 직구곰 (jikgugom) — 해외 구매대행 자동화 플랫폼
 
-> 🐻 직구곰: 해외직구(직구)를 대신 해주는 곰. Amazon에서 곰처럼 부지런히 물어와 네이버에 풀어놓는다.
+> 🐻 직구곰: 해외직구(직구)를 대신 해주는 곰. AliExpress에서 곰처럼 부지런히 물어와 네이버에 풀어놓는다.
 
-해외(Amazon 등) 인기상품을 소싱 → 통관·인증 규제 필터 → 전 비용 마진계산 →
+해외(AliExpress·Amazon 등) 인기상품을 소싱 → 통관·인증 규제 필터 → 전 비용 마진계산 →
 한글 상세페이지 → **국내 멀티채널 동시 등록** → 자동/반자동 발주 → 가격·재고 모니터링까지
 자동화하는 무재고(드롭십) 플랫폼.
 
@@ -17,7 +17,7 @@
 
 | 구성요소 | 상태 |
 |---|---|
-| Adapter (`adapters/`) — Amazon(Rainforest)·Naver(커머스 API) | ✅ 본체 구현 (매핑·OAuth 서명 테스트) |
+| Adapter (`adapters/`) — AliExpress(제휴 API)·Amazon(Rainforest)·Naver(커머스 API) | ✅ 본체 구현 (매핑·서명 테스트) |
 | 컴플라이언스 필터 (`compliance/`) | ✅ 구현 완료 (룰 YAML + 엔진 + 테스트) |
 | 마진엔진 (`margin/`) | ✅ 구현 완료 (전 비용 모델 + 통관유형 분기) |
 | 모니터 워커 (`monitor/`) | ✅ 구현 완료 (폴링 → pause/reprice/resume) |
@@ -54,10 +54,13 @@ real, 빈 레이어는 mock 유지 (graceful degradation). 어댑터 선택은 `
 cp .env.example .env       # 아래 키만 채우면 됨
 ```
 ```ini
-RAINFOREST_API_KEY=...     # Amazon 소싱 (rainforestapi.com, 유료)
+ALIEXPRESS_APP_KEY=...     # 소싱 1차: AliExpress 제휴 Open Platform (무료, 둘 다 필요)
+ALIEXPRESS_APP_SECRET=...  #   ALIEXPRESS_TRACKING_ID=<제휴 PID>
+# RAINFOREST_API_KEY=...   # 소싱 대체: Amazon(유료). AliExpress 키 없을 때만 사용
 NAVER_CLIENT_ID=...        # 네이버 커머스 API (판매자센터, 사업자등록 필요)
 NAVER_CLIENT_SECRET=...    #   + pip install bcrypt   (둘 다 있어야 real)
-ANTHROPIC_API_KEY=...      # 평가/콘텐츠/CS 에이전트 real (선택, + pip install anthropic)
+GEMINI_API_KEY=...         # 평가/콘텐츠/CS 에이전트 real (Google Gemini, REST=추가설치 불필요)
+# GEMINI_MODEL=gemini-2.5-flash   # 선택: 모델 교체
 DEEPL_API_KEY=...          # 본문 번역 real (선택, deepl.com 무료 티어)
 FX_RATE=1380               # USD→KRW 환율 / SALES_CHANNELS=naver,coupang
 ```
@@ -103,7 +106,7 @@ jikgugom/
 ├── core/                     # 중앙 설정 — .env/환경변수 로딩·검증(fail-fast)·키 마스킹
 │   └── settings.py
 ├── adapters/                # 포트-어댑터: SourceAdapter / ChannelAdapter (ABC)
-│   ├── base.py  amazon.py  naver.py
+│   ├── base.py  aliexpress.py  amazon.py  naver.py
 │   ├── _http.py              # 공용 HTTP(재시도·백오프·429·키 마스킹)
 │   └── factory.py            # build_adapters: 키 유무로 real/mock 조립(Composition Root)
 ├── compliance/              # 통관·인증 규제 필터 (PASS/BLOCK/REVIEW)

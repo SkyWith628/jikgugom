@@ -17,8 +17,9 @@ from jikgugom.core.settings import (
     mask_secret,
 )
 
-KEYS = ["RAINFOREST_API_KEY", "NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET",
-        "ANTHROPIC_API_KEY", "DEEPL_API_KEY", "FX_RATE", "SALES_CHANNELS",
+KEYS = ["ALIEXPRESS_APP_KEY", "ALIEXPRESS_APP_SECRET", "ALIEXPRESS_TRACKING_ID",
+        "RAINFOREST_API_KEY", "NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET",
+        "GEMINI_API_KEY", "DEEPL_API_KEY", "FX_RATE", "SALES_CHANNELS",
         "SOURCING_CATEGORY", "MONITOR_INTERVAL_SECONDS"]
 
 
@@ -83,6 +84,6 @@ def test_masked_snapshot_has_no_plaintext(monkeypatch):
 
 
 def test_llm_modes_track_keys(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setenv("GEMINI_API_KEY", "x")
     m = llm_modes(load_settings())
-    assert m == {"anthropic": "real", "deepl": "mock"}
+    assert m == {"gemini": "real", "deepl": "mock"}

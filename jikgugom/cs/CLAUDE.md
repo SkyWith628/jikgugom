@@ -8,7 +8,7 @@
 1. **에스컬레이션은 결정론 규칙, LLM 아님.** LLM은 의도 분류·문구 작성만.
    환불/불만(돈·법적) + 분류 불확실은 **무조건 사람**. 비가역 판단을 LLM에 위임 금지.
 2. **도구는 정보 제공만.** 환불 승인·취소 같은 실행 도구는 없다(사람이 실행).
-3. **키 없이도 돈다.** `ANTHROPIC_API_KEY` 없으면 mock(키워드 분류). real 실패 시 폴백.
+3. **키 없이도 돈다.** `GEMINI_API_KEY` 없으면 mock(키워드 분류). real 실패 시 폴백.
 
 ## 파일 구조
 
@@ -16,7 +16,7 @@
 cs/
 ├── models.py   # Intent, CSAction, CSContext, CSResponse
 ├── tools.py    # 순수함수: 주문상태/배송단계 라벨, 환불정책 검색(간이 KB)
-├── llm.py      # 의도 분류 + 응답 초안 (Anthropic/mock)
+├── llm.py      # 의도 분류 + 응답 초안 (Gemini/mock)
 └── agent.py    # CSAgent.handle(inquiry, context) → CSResponse
 ```
 

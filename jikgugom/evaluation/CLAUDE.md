@@ -13,7 +13,7 @@
    필요하면 `from jikgugom.margin import ...` / `compliance` 를 import.
 3. **점수는 게이트가 아니다.** 점수는 정보. 단 `SKIP` 추천은 자동발행을 막고
    사람 검토(`REVIEW`)로 회부한다 — 파이프라인 러너가 처리.
-4. **키 없이도 돈다.** `ANTHROPIC_API_KEY` 가 없으면 `llm.py` 가 자동 mock 모드.
+4. **키 없이도 돈다.** `GEMINI_API_KEY` 가 없으면 `llm.py` 가 자동 mock 모드.
    이 동작을 깨지 말 것 (테스트·CI·재현성).
 
 ## 파일 구조
@@ -33,12 +33,13 @@ evaluation/
 ```
 evaluate(product, quote?):
   collect_signals(product)  →  llm.score_market_fit()  →  clamp  →  recommend()
-       (tools.py 순수함수)        (mock=휴리스틱 / real=Anthropic)
+       (tools.py 순수함수)        (mock=휴리스틱 / real=Gemini)
 ```
 
 ## 코드 컨벤션
 
-- **LLM 호출은 반드시 `llm.py` 경유.** 다른 파일에서 anthropic SDK 직접 호출 금지.
+- **LLM 호출은 반드시 `llm.py` 경유.** 다른 파일에서 LLM(Gemini) 직접 호출 금지
+  (실제 호출은 `core/gemini.py` 한 곳).
 - **도구는 순수 함수** (같은 입력 → 같은 출력). 현재 수요/경쟁은 mock.
 - LLM 점수는 `clamp_score` 로 0~100 보정 후 사용.
 - real 모드 JSON 파싱 실패 → 예외 전파 말고 `heuristic_score` 폴백 + `degraded=True`.
