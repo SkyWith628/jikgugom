@@ -10,26 +10,40 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from api.db import make_repository
+from api.ledger_sql import make_fulfillment_ledger
 from api.repository import Repository
-from api.store import ListingRecord, OrderRecord
+from api.store import ListingRecord, OrderRecord, PublicationRecord
+from jikgugom.adapters.factory import build_adapters
 from jikgugom.compliance import ComplianceEngine
 from jikgugom.content import ContentAgent
+from jikgugom.core import Settings, llm_modes, load_settings
 from jikgugom.evaluation import EvaluationAgent
 from jikgugom.margin import MarginEngine
 from jikgugom.models import ChannelOrder, PublishStatus
 from jikgugom.monitor import ListingState, MonitorAction, MonitorWorker
-from jikgugom.order import OrderContext, OrderProcessor
-from jikgugom.pipeline import ListingStatus, PipelineRunner
-from jikgugom.samples import SampleChannel, SampleFulfiller, SampleSource
-
-FX = Decimal("1380")
+from jikgugom.order import ManualFulfiller, OrderContext, OrderProcessor
+from jikgugom.pipeline import ListingStatus, MultiChannelPublisher, PipelineRunner
 
 
 class DashboardService:
-    def __init__(self, repository: Repository | None = None) -> None:
-        self._source = SampleSource()
-        self._channel = SampleChannel()
-        self._fulfiller = SampleFulfiller()
+    def __init__(self, repository: Repository | None = None,
+                 settings: Settings | None = None) -> None:
+        # 설정 로딩·검증(fail-fast) → 키 유무로 real/mock 어댑터 조립
+        self._settings = settings or load_settings()
+        self._settings.validate()
+        adapters = build_adapters(self._settings)
+        self.modes = {**adapters.modes, **llm_modes(self._settings)}
+        self._fx = self._settings.fx_rate
+
+        self._source = adapters.source
+        # primary 채널(가격기준·모니터 키) — 보통 naver
+        self._channel = next(
+            (c for c in adapters.channels if c.name == self._settings.primary_channel),
+            adapters.channels[0])
+        # 멀티채널 동시등록: 승인 시 등록 채널들에 팬아웃 발행
+        self._publisher = MultiChannelPublisher(adapters.channels)
+        # 반자동(HITL) 발주 + SQL 영속 원장 → 재시작해도 멱등·매입추적 유지
+        self._fulfiller = ManualFulfiller(make_fulfillment_ledger())
         self._compliance = ComplianceEngine()
         self._margin = MarginEngine()
         self._runner = PipelineRunner(
@@ -49,7 +63,8 @@ class DashboardService:
     # ── 소싱 파이프라인 실행 → listings 채우기 ───────────────
     def run_sourcing(self) -> None:
         self.repo.clear_listings()
-        for o in self._runner.run("Best", pricing_channel="naver", fx_rate=FX):
+        for o in self._runner.run(self._settings.sourcing_category,
+                                  pricing_channel=self._channel.name, fx_rate=self._fx):
             sp = self._source.get_product(o.source_id)   # 원본 기준가/통관 정보 보관(모니터링용)
             rec = ListingRecord(
                 id=o.source_id, title=(o.draft.title_ko if o.draft else o.source_id),
@@ -69,11 +84,22 @@ class DashboardService:
         if rec.status != ListingStatus.READY.value:
             raise ValueError(f"listing {listing_id} is '{rec.status}', not ready")
         draft = self.repo.get_draft(listing_id)
-        res = self._channel.publish(draft)
-        if res.status is PublishStatus.LISTED:
+        results = self._publisher.publish(draft)   # naver+coupang 동시 발행
+        for channel, res in results.items():
+            self.repo.save_publication(PublicationRecord(
+                listing_id=listing_id, channel=channel, status=res.status.value,
+                channel_product_no=res.channel_product_no, note=res.message or ""))
+
+        listed = {ch: r for ch, r in results.items() if r.status is PublishStatus.LISTED}
+        if listed:   # 한 채널이라도 성공하면 발행됨(부분 성공 허용)
             rec.status = ListingStatus.PUBLISHED.value
-            rec.channel_product_no = res.channel_product_no
-            rec.note = f"published as {res.channel_product_no}"
+            # 모니터는 primary(naver) 상품번호에 키잉 → primary 우선, 없으면 첫 성공 채널
+            primary = results.get(self._channel.name)
+            rec.channel_product_no = (
+                primary.channel_product_no
+                if primary and primary.status is PublishStatus.LISTED
+                else next(iter(listed.values())).channel_product_no)
+            rec.note = f"발행 {len(listed)}/{len(results)}채널: {', '.join(listed)}"
             self.repo.save_listing(rec, None)   # draft 유지(None=미변경)
         return rec
 
@@ -93,14 +119,35 @@ class DashboardService:
                 profit_krw=int(guard.profit_krw) if guard.profit_krw is not None else None))
 
     def approve_order(self, order_id: str) -> OrderRecord:
+        """발주 승인 — 멱등 원장에 매입 의도 기록(AWAITING_PURCHASE). 실매입은 운영자가."""
         rec = self.repo.get_order(order_id)
         if rec is None:
             raise KeyError(order_id)
-        # 멱등키 = order_id: 승인 버튼 중복 클릭에도 한 번만 매입
+        # 멱등키 = order_id: 승인 버튼 중복 클릭에도 원장엔 한 줄만(이중결제 방지)
         res = self._fulfiller.place_order(rec.product_id, rec.quantity, {},
                                           idempotency_key=order_id)
-        rec.status = "amazon_ordered"
+        rec.status = "awaiting_purchase"   # Amazon 구매 API 부재 → 운영자 실매입 대기
         rec.fulfillment_id = res.fulfillment_id
+        self.repo.save_order(rec)
+        return rec
+
+    def confirm_purchase(self, order_id: str, amazon_order_no: str, *,
+                         tracking_no: str | None = None) -> OrderRecord:
+        """운영자가 Amazon 실매입을 마친 뒤 주문번호(·송장)를 기록 → PURCHASED.
+
+        반자동(HITL)의 마지막 인간 단계: '결제 버튼'은 사람이 누르고 그 증빙을 여기 남긴다.
+        """
+        rec = self.repo.get_order(order_id)
+        if rec is None:
+            raise KeyError(order_id)
+        if rec.fulfillment_id is None:
+            raise ValueError(f"order {order_id} is '{rec.status}', not awaiting purchase")
+        # 원장(멱등 원천)에 확정 기록 → 표시용으로 OrderRecord에도 동기
+        self._fulfiller.confirm_purchase(rec.fulfillment_id, amazon_order_no,
+                                         tracking_no=tracking_no)
+        rec.status = "purchased"
+        rec.amazon_order_no = amazon_order_no
+        rec.tracking_no = tracking_no
         self.repo.save_order(rec)
         return rec
 
@@ -143,6 +190,16 @@ class DashboardService:
             changes.append({"id": rec.id, "action": d.action.value, "reason": d.reason,
                             "new_price_krw": int(d.new_price_krw) if d.new_price_krw else None})
         return changes
+
+    # ── 운영 설정/모드 가시화 ────────────────────────────────
+    def config(self) -> dict:
+        """현재 어댑터·LLM 모드(real/mock)와 운영 파라미터 — 키 노출 없음."""
+        return {
+            "modes": self.modes,
+            "fx_rate": str(self._fx),
+            "channels": list(self._settings.channels),
+            "sourcing_category": self._settings.sourcing_category,
+        }
 
     # ── 집계 ─────────────────────────────────────────────────
     def stats(self) -> dict:

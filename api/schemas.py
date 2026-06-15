@@ -5,6 +5,12 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class PublicationOut(BaseModel):
+    channel: str
+    status: str
+    channel_product_no: str | None = None
+
+
 class ListingOut(BaseModel):
     id: str
     title: str
@@ -14,6 +20,7 @@ class ListingOut(BaseModel):
     market_score: int | None = None
     recommendation: str | None = None
     channel_product_no: str | None = None
+    publications: list[PublicationOut] = []
 
 
 class OrderOut(BaseModel):
@@ -26,6 +33,15 @@ class OrderOut(BaseModel):
     guard_reason: str
     profit_krw: int | None = None
     fulfillment_id: str | None = None
+    amazon_order_no: str | None = None
+    tracking_no: str | None = None
+
+
+class ConfirmPurchaseIn(BaseModel):
+    """운영자 매입 확정 입력 — Amazon 실주문번호(필수)·송장(선택)."""
+
+    amazon_order_no: str
+    tracking_no: str | None = None
 
 
 class StatsOut(BaseModel):

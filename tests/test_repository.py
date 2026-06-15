@@ -11,7 +11,7 @@ import pytest
 
 from api.db import SqlRepository
 from api.repository import InMemoryRepository
-from api.store import ListingRecord, OrderRecord
+from api.store import ListingRecord, OrderRecord, PublicationRecord
 from jikgugom.models import ChannelCategory, ListingDraft
 
 
@@ -93,6 +93,35 @@ def test_list_methods(repo):
     repo.save_order(_order("ORD-001"))
     assert {l.id for l in repo.list_listings()} == {"B01", "B02"}
     assert [o.id for o in repo.list_orders()] == ["ORD-001"]
+
+
+def _pub(listing_id="B01", channel="naver", no="NV000001") -> PublicationRecord:
+    return PublicationRecord(listing_id=listing_id, channel=channel,
+                             status="listed", channel_product_no=no, note="")
+
+
+def test_publication_roundtrip_and_upsert(repo):
+    repo.save_publication(_pub())
+    pubs = repo.list_publications("B01")
+    assert len(pubs) == 1 and pubs[0].channel == "naver"
+    repo.save_publication(_pub(channel="naver", no="NV999"))   # 같은 (id,channel) 갱신
+    assert len(repo.list_publications("B01")) == 1             # upsert: 늘지 않음
+    assert repo.list_publications("B01")[0].channel_product_no == "NV999"
+
+
+def test_publications_per_channel(repo):
+    repo.save_publication(_pub(channel="naver", no="NV1"))
+    repo.save_publication(_pub(channel="coupang", no="CP1"))
+    chans = {p.channel for p in repo.list_publications("B01")}
+    assert chans == {"naver", "coupang"}
+    assert len(repo.list_all_publications()) == 2
+
+
+def test_clear_listings_clears_publications(repo):
+    repo.save_listing(_listing(), _draft())
+    repo.save_publication(_pub())
+    repo.clear_listings()
+    assert repo.list_all_publications() == []
 
 
 def test_sql_persists_across_instances(tmp_path):

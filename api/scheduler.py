@@ -8,21 +8,23 @@ broker-agnostic이라 추후 Celery Beat로 그대로 옮길 수 있다.
 from __future__ import annotations
 
 import logging
-import os
 from datetime import datetime, timezone
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from api.service import DashboardService
+from jikgugom.core import load_settings
 
 log = logging.getLogger("jikgugom.scheduler")
-DEFAULT_INTERVAL = int(os.getenv("MONITOR_INTERVAL_SECONDS", "300"))
 
 
 class MonitorScheduler:
-    def __init__(self, service: DashboardService, interval_seconds: int = DEFAULT_INTERVAL) -> None:
+    def __init__(self, service: DashboardService,
+                 interval_seconds: int | None = None) -> None:
         self._service = service
-        self._interval = interval_seconds
+        # 미지정 시 중앙 설정(.env/환경변수)에서 주기를 읽는다
+        self._interval = (interval_seconds if interval_seconds is not None
+                          else load_settings().monitor_interval_seconds)
         self._scheduler = BackgroundScheduler(daemon=True)
         self.last_run: dict | None = None
 

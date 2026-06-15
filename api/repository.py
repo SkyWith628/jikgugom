@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from api.store import ListingRecord, OrderRecord
+from api.store import ListingRecord, OrderRecord, PublicationRecord
 from jikgugom.models import ListingDraft
 
 
@@ -32,6 +32,16 @@ class Repository(ABC):
     @abstractmethod
     def list_listings(self) -> list[ListingRecord]: ...
 
+    # ── publications (멀티채널 발행) ──────────────────────────
+    @abstractmethod
+    def save_publication(self, rec: PublicationRecord) -> None: ...
+
+    @abstractmethod
+    def list_publications(self, listing_id: str) -> list[PublicationRecord]: ...
+
+    @abstractmethod
+    def list_all_publications(self) -> list[PublicationRecord]: ...
+
     # ── orders ───────────────────────────────────────────────
     @abstractmethod
     def has_orders(self) -> bool: ...
@@ -53,6 +63,7 @@ class InMemoryRepository(Repository):
         self._listings: dict[str, ListingRecord] = {}
         self._drafts: dict[str, ListingDraft] = {}
         self._orders: dict[str, OrderRecord] = {}
+        self._pubs: dict[tuple[str, str], PublicationRecord] = {}
 
     def is_listings_empty(self) -> bool:
         return not self._listings
@@ -60,6 +71,7 @@ class InMemoryRepository(Repository):
     def clear_listings(self) -> None:
         self._listings.clear()
         self._drafts.clear()
+        self._pubs.clear()   # 소싱 재실행 시 발행 기록도 함께 초기화
 
     def save_listing(self, rec, draft):
         self._listings[rec.id] = rec
@@ -74,6 +86,15 @@ class InMemoryRepository(Repository):
 
     def list_listings(self):
         return list(self._listings.values())
+
+    def save_publication(self, rec):
+        self._pubs[(rec.listing_id, rec.channel)] = rec
+
+    def list_publications(self, listing_id):
+        return [p for (lid, _), p in self._pubs.items() if lid == listing_id]
+
+    def list_all_publications(self):
+        return list(self._pubs.values())
 
     def has_orders(self):
         return bool(self._orders)

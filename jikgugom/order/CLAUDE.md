@@ -49,11 +49,13 @@ place_order(idempotency_key=channel_order_no)
 
 - **멱등키 = `channel_order_no`.** 같은 채널주문은 영원히 한 번만 매입(이중결제 금지).
   계약(`place_order`)이 `idempotency_key`를 필수로 받는다.
-- 영속 원장(SqlFulfillmentLedger)은 운영 관심사라 api/에 둘 것(현재 InMemory만).
+- 영속 원장 ✅ `api/ledger_sql.py`의 `SqlFulfillmentLedger`(idempotency_key unique).
+  대시보드 서비스가 `ManualFulfiller(make_fulfillment_ledger())`로 주입 → 재시작 후에도 멱등 유지.
 
 ## TODO / 제약
 
-- 운영자 confirm을 대시보드 UI/외부 구매대행 서비스 webhook과 연결(현재 메서드만).
+- 운영자 confirm ✅ 대시보드 매입확정 모달 → `POST /api/orders/{id}/confirm` → PURCHASED.
+  (외부 구매대행 서비스 webhook 연동은 후속.)
 - 환불·취소 흐름(CANCELLED)·통관추적 동기화는 후속.
 - PCCC(개인통관고유부호)는 발주 직전 복호화·발주 후 폐기 (개인정보보호법).
   원장에 PCCC·결제정보 저장 금지(`FulfillmentRecord`는 source_id/qty/상태만).

@@ -1,3 +1,4 @@
+from jikgugom.pipeline.multichannel import MultiChannelPublisher
 from jikgugom.pipeline.runner import (
     ListingStatus,
     PipelineConfig,
@@ -12,4 +13,5 @@ __all__ = [
     "PipelineOutcome",
     "ListingStatus",
     "default_content_builder",
+    "MultiChannelPublisher",
 ]

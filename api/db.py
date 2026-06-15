@@ -14,7 +14,7 @@ from sqlalchemy import String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from api.repository import Repository
-from api.store import ListingRecord, OrderRecord
+from api.store import ListingRecord, OrderRecord, PublicationRecord
 from jikgugom.models import ChannelCategory, ListingDraft
 
 
@@ -38,6 +38,16 @@ class ListingRow(Base):
     baseline_price_usd: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
+class PublicationRow(Base):
+    __tablename__ = "publications"
+    # (listing_id, channel) 복합 PK → 한 상품의 채널별 발행 한 줄씩
+    listing_id: Mapped[str] = mapped_column(String, primary_key=True)
+    channel: Mapped[str] = mapped_column(String, primary_key=True)
+    status: Mapped[str] = mapped_column(String, index=True)
+    channel_product_no: Mapped[str | None] = mapped_column(String, nullable=True)
+    note: Mapped[str] = mapped_column(String, default="")
+
+
 class OrderRow(Base):
     __tablename__ = "orders"
     id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -49,6 +59,8 @@ class OrderRow(Base):
     guard_reason: Mapped[str] = mapped_column(String)
     profit_krw: Mapped[int | None] = mapped_column(nullable=True)
     fulfillment_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    amazon_order_no: Mapped[str | None] = mapped_column(String, nullable=True)
+    tracking_no: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 # ── ListingDraft ↔ JSON (드래프트는 발행 재실행에 필요) ──────
@@ -88,11 +100,18 @@ def _to_listing(row: ListingRow) -> ListingRecord:
         baseline_price_usd=row.baseline_price_usd)
 
 
+def _to_publication(row: PublicationRow) -> PublicationRecord:
+    return PublicationRecord(
+        listing_id=row.listing_id, channel=row.channel, status=row.status,
+        channel_product_no=row.channel_product_no, note=row.note)
+
+
 def _to_order(row: OrderRow) -> OrderRecord:
     return OrderRecord(
         id=row.id, product_id=row.product_id, quantity=row.quantity, buyer=row.buyer,
         status=row.status, guard_action=row.guard_action, guard_reason=row.guard_reason,
-        profit_krw=row.profit_krw, fulfillment_id=row.fulfillment_id)
+        profit_krw=row.profit_krw, fulfillment_id=row.fulfillment_id,
+        amazon_order_no=row.amazon_order_no, tracking_no=row.tracking_no)
 
 
 class SqlRepository(Repository):
@@ -110,6 +129,8 @@ class SqlRepository(Repository):
         with Session(self._engine) as s:
             for row in s.scalars(select(ListingRow)):
                 s.delete(row)
+            for pub in s.scalars(select(PublicationRow)):   # 발행 기록도 함께 초기화
+                s.delete(pub)
             s.commit()
 
     def save_listing(self, rec: ListingRecord, draft: ListingDraft | None) -> None:
@@ -141,6 +162,26 @@ class SqlRepository(Repository):
         with Session(self._engine) as s:
             return [_to_listing(r) for r in s.scalars(select(ListingRow))]
 
+    # ── publications ─────────────────────────────────────────
+    def save_publication(self, rec: PublicationRecord) -> None:
+        with Session(self._engine) as s:
+            row = s.get(PublicationRow, (rec.listing_id, rec.channel)) \
+                or PublicationRow(listing_id=rec.listing_id, channel=rec.channel)
+            row.status, row.channel_product_no, row.note = \
+                rec.status, rec.channel_product_no, rec.note
+            s.merge(row)
+            s.commit()
+
+    def list_publications(self, listing_id: str) -> list[PublicationRecord]:
+        with Session(self._engine) as s:
+            rows = s.scalars(
+                select(PublicationRow).where(PublicationRow.listing_id == listing_id))
+            return [_to_publication(r) for r in rows]
+
+    def list_all_publications(self) -> list[PublicationRecord]:
+        with Session(self._engine) as s:
+            return [_to_publication(r) for r in s.scalars(select(PublicationRow))]
+
     # ── orders ───────────────────────────────────────────────
     def has_orders(self) -> bool:
         with Session(self._engine) as s:
@@ -152,6 +193,7 @@ class SqlRepository(Repository):
             row.product_id, row.quantity, row.buyer = rec.product_id, rec.quantity, rec.buyer
             row.status, row.guard_action, row.guard_reason = rec.status, rec.guard_action, rec.guard_reason
             row.profit_krw, row.fulfillment_id = rec.profit_krw, rec.fulfillment_id
+            row.amazon_order_no, row.tracking_no = rec.amazon_order_no, rec.tracking_no
             s.merge(row)
             s.commit()
 

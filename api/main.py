@@ -13,7 +13,13 @@ from decimal import Decimal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.schemas import ListingOut, OrderOut, StatsOut
+from api.schemas import (
+    ConfirmPurchaseIn,
+    ListingOut,
+    OrderOut,
+    PublicationOut,
+    StatsOut,
+)
 from api.scheduler import MonitorScheduler
 from api.service import DashboardService
 
@@ -44,7 +50,13 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {"status": "ok", "modes": service.modes}
+
+
+@app.get("/api/config")
+def get_config() -> dict:
+    """어댑터/LLM 모드(real/mock)와 운영 파라미터. 키는 노출하지 않음."""
+    return service.config()
 
 
 @app.get("/api/stats", response_model=StatsOut)
@@ -52,9 +64,22 @@ def get_stats() -> dict:
     return service.stats()
 
 
+def _listings_view() -> list[ListingOut]:
+    """listing + 채널별 발행 결과(publications)를 묶어 응답 모델로 조립."""
+    pubs: dict[str, list[PublicationOut]] = {}
+    for p in service.repo.list_all_publications():
+        pubs.setdefault(p.listing_id, []).append(PublicationOut(
+            channel=p.channel, status=p.status, channel_product_no=p.channel_product_no))
+    return [ListingOut(
+        id=r.id, title=r.title, status=r.status, note=r.note, price_krw=r.price_krw,
+        market_score=r.market_score, recommendation=r.recommendation,
+        channel_product_no=r.channel_product_no, publications=pubs.get(r.id, []))
+        for r in service.repo.list_listings()]
+
+
 @app.get("/api/listings", response_model=list[ListingOut])
 def list_listings() -> list:
-    return service.repo.list_listings()
+    return _listings_view()
 
 
 @app.post("/api/listings/{listing_id}/approve", response_model=ListingOut)
@@ -70,7 +95,7 @@ def approve_listing(listing_id: str):
 @app.post("/api/sourcing/run", response_model=list[ListingOut])
 def run_sourcing() -> list:
     service.run_sourcing()
-    return service.repo.list_listings()
+    return _listings_view()
 
 
 @app.get("/api/orders", response_model=list[OrderOut])
@@ -84,6 +109,18 @@ def approve_order(order_id: str):
         return service.approve_order(order_id)
     except KeyError:
         raise HTTPException(404, f"order {order_id} not found")
+
+
+@app.post("/api/orders/{order_id}/confirm", response_model=OrderOut)
+def confirm_order_purchase(order_id: str, body: ConfirmPurchaseIn):
+    """운영자가 Amazon 실매입을 마친 뒤 주문번호·송장을 기록 → 매입 확정."""
+    try:
+        return service.confirm_purchase(order_id, body.amazon_order_no,
+                                        tracking_no=body.tracking_no)
+    except KeyError:
+        raise HTTPException(404, f"order {order_id} not found")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
 
 
 @app.post("/api/orders/{order_id}/reject", response_model=OrderOut)

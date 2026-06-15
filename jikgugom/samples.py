@@ -96,6 +96,34 @@ class SampleChannel(ChannelAdapter):
     def fetch_orders(self, *, since=None): return []
 
 
+class SampleCoupangChannel(ChannelAdapter):
+    """두 번째 판매 채널 mock — 멀티채널 동시등록 데모용. 실서비스는 Coupang WING API로 교체.
+
+    네이버와 카테고리 체계·상품번호 포맷이 다른 것을 흉내 낸다(CP 접두사).
+    """
+
+    name = "coupang"
+
+    def __init__(self) -> None:
+        self.published: dict = {}
+        self._seq = 0
+
+    def map_category(self, path):
+        # 쿠팡은 자체 카테고리 코드 체계 → 매핑 결과가 네이버와 다름을 표현
+        return ChannelCategory("194176", "/".join(path), 0.85)
+
+    def publish(self, draft):
+        self._seq += 1
+        no = f"CP{self._seq:08d}"
+        self.published[no] = draft
+        return PublishResult(PublishStatus.LISTED, no)
+
+    def update_price(self, no, price): ...
+    def pause(self, no): ...
+    def resume(self, no): ...
+    def fetch_orders(self, *, since=None): return []
+
+
 class SampleFulfiller:
     name = "sample-amazon"
 

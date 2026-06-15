@@ -25,13 +25,30 @@ class ListingRecord:
 
 
 @dataclass
+class PublicationRecord:
+    """한 상품이 한 채널에 발행된 결과 — 멀티채널 동시등록의 채널별 추적 단위.
+
+    (listing_id, channel) 복합키. 채널마다 상품번호·심사상태가 달라 정규화해 보관한다.
+    """
+
+    listing_id: str
+    channel: str                     # naver | coupang
+    status: str                      # listed | rejected | pending
+    channel_product_no: str | None = None
+    note: str = ""
+
+
+@dataclass
 class OrderRecord:
     id: str
     product_id: str
     quantity: int
     buyer: str
-    status: str                      # pending_approval | amazon_ordered | rejected
+    status: str                      # pending_approval | awaiting_purchase | purchased | rejected
     guard_action: str                # auto_order | approval_required
     guard_reason: str
     profit_krw: int | None = None
     fulfillment_id: str | None = None
+    # 운영자 매입 확정 시 기록(원장과 동기). 표시용 비정규화 — 멱등 원천은 ledger.
+    amazon_order_no: str | None = None
+    tracking_no: str | None = None

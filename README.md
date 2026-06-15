@@ -26,11 +26,16 @@
 | 콘텐츠 에이전트 (`content/`) | ✅ 구현 완료 (ContentBuilder, DeepL+LLM 하이브리드, mock) |
 | 주문→발주 가드 (`order/`) | ✅ 구현 완료 (profit_at 재검증 → 자동발주/승인큐) |
 | 발주 자동화 (`order/manual.py`) | ✅ 구현 완료 (반자동 HITL — 멱등 원장 기록 → 운영자 매입 확정) |
+| 발주 원장 SQL 영속화 (`api/ledger_sql.py`) | ✅ 구현 완료 (`SqlFulfillmentLedger`, idempotency_key unique → 이중결제 물리 차단) |
+| 운영자 매입확정 UI (`api/` + `dashboard/`) | ✅ 구현 완료 (매입확정 모달 → PURCHASED, 주문번호·송장 기록) |
 | ③ CS 응대 에이전트 (`cs/`) | ✅ 구현 완료 (자동응답 + 민감건 결정론 에스컬레이션) |
-| 어드민 대시보드 (`api/` + `dashboard/`) | ✅ 구현 완료 (FastAPI + Next.js, 승인 버튼/발주 큐) |
+| 어드민 대시보드 (`api/` + `dashboard/`) | ✅ 구현 완료 (FastAPI + Next.js, 승인 버튼/발주 큐/매입확정) |
 | DB 영속화 (`api/repository.py`+`db.py`) | ✅ 구현 완료 (Repository 추상화, SQLite/PostgreSQL) |
 | 스케줄러 (`api/scheduler.py`) | ✅ 구현 완료 (APScheduler, 가격·재고 주기 점검 → pause/reprice/resume) |
-| 멀티채널 동시등록 / 예측 ML | 로드맵 (Phase 3) |
+| 멀티채널 동시등록 (`pipeline/multichannel.py`) | ✅ 구현 완료 (`MultiChannelPublisher`, naver+coupang 팬아웃 + 채널별 발행 추적) |
+| 설정·어댑터 팩토리 (`core/settings.py`+`adapters/factory.py`) | ✅ 구현 완료 (`.env`→real/mock 자동 배선, fail-fast 검증, 모드 가시화, 키 마스킹) |
+| HTTP 견고성 (`adapters/_http.py`) | ✅ 구현 완료 (지수 백오프 재시도, 429 Retry-After, 키 마스킹) |
+| 쿠팡 실어댑터 / 예측 ML / 멀티채널 모니터 | 로드맵 (Phase 4) |
 
 ## 실행
 
@@ -38,20 +43,30 @@
 ```bash
 pip install -r requirements.txt          # 핵심은 PyYAML만
 python -m jikgugom.demo            # 샘플 카탈로그로 전체 흐름 1회 실행(mock)
-python -m pytest -q                       # 123 passed
+python -m pytest -q                       # 170 passed
 ```
 
-### 레벨 2 — 실 API 키로 동작
-환경변수만 채우면 mock → real 자동 전환 (없는 키는 mock 유지).
+### 레벨 2 — 실 API 키로 동작 (코드 수정 0)
+**`.env`만 채우면 데모·대시보드 전체가 자동으로 real로 붙는다.** 키를 채운 레이어만
+real, 빈 레이어는 mock 유지 (graceful degradation). 어댑터 선택은 `core/settings.py`
++ `adapters/factory.py`가 담당 — 더 이상 코드를 손으로 고치지 않는다.
 ```bash
-export RAINFOREST_API_KEY=...   # Amazon 소싱 (rainforestapi.com, 유료)
-export NAVER_CLIENT_ID=...      # 네이버 커머스 API (판매자센터, 사업자등록 필요)
-export NAVER_CLIENT_SECRET=...  #   + pip install bcrypt
-export ANTHROPIC_API_KEY=...    # 평가/콘텐츠/CS 에이전트 real (선택)
-export DEEPL_API_KEY=...        # 본문 번역 real (선택, deepl.com 무료 티어)
+cp .env.example .env       # 아래 키만 채우면 됨
 ```
-실 어댑터 주입은 `demo.py`의 `SampleSource/SampleChannel`을
-`AmazonRainforestAdapter(key)` / `NaverSmartstoreAdapter(id, secret)`로 교체.
+```ini
+RAINFOREST_API_KEY=...     # Amazon 소싱 (rainforestapi.com, 유료)
+NAVER_CLIENT_ID=...        # 네이버 커머스 API (판매자센터, 사업자등록 필요)
+NAVER_CLIENT_SECRET=...    #   + pip install bcrypt   (둘 다 있어야 real)
+ANTHROPIC_API_KEY=...      # 평가/콘텐츠/CS 에이전트 real (선택, + pip install anthropic)
+DEEPL_API_KEY=...          # 본문 번역 real (선택, deepl.com 무료 티어)
+FX_RATE=1380               # USD→KRW 환율 / SALES_CHANNELS=naver,coupang
+```
+- **시작 시 설정 검증(fail-fast)**: 네이버 키를 한쪽만 넣는 등 잘못된 설정은 즉시 에러.
+- **모드 가시화**: 대시보드 헤더와 `GET /api/config`가 레이어별 real/mock을 표시 →
+  "키 넣었는데 왜 mock?"을 눈으로 확인.
+- **운영 견고성**: 외부 API는 지수 백오프 재시도 + 429(Retry-After) 처리, 키는
+  로그·에러에 마스킹(`api_key` 등 노출 차단).
+- 쿠팡은 현재 mock 고정(실 WING 어댑터 미구현) — `ChannelAdapter` 구현체만 붙이면 real.
 
 ### 어드민 대시보드 (웹 UI)
 승인 버튼·발주 큐·시장성 점수를 눈으로 보는 대시보드 (FastAPI + Next.js).
@@ -76,16 +91,21 @@ export MONITOR_INTERVAL_SECONDS=300   # 자동 점검 주기(기본 300초, 0=�
 ```
 
 ### 레벨 3 — 상시 운영 (남은 갭)
-~~DB 영속화~~ ✅ · ~~스케줄러~~ ✅ · ~~발주 자동화~~ ✅ (반자동 HITL).
-남은 갭: 발주 원장 SQL 영속화(`SqlFulfillmentLedger`) · 운영자 매입확정 UI · 멀티채널.
+~~DB 영속화~~ ✅ · ~~스케줄러~~ ✅ · ~~발주 자동화~~ ✅ (반자동 HITL) ·
+~~발주 원장 SQL 영속화~~ ✅ · ~~운영자 매입확정 UI~~ ✅ · ~~멀티채널 동시등록~~ ✅.
+남은 갭: 채널별 모니터(현재 monitor는 naver primary에 키잉) · 채널별 카테고리 재매핑 · 예측 ML.
 
 ## 코드 구조
 
 ```
 jikgugom/
 ├── models.py                # 공용 DTO (SourceProduct, ListingDraft, ...)
+├── core/                     # 중앙 설정 — .env/환경변수 로딩·검증(fail-fast)·키 마스킹
+│   └── settings.py
 ├── adapters/                # 포트-어댑터: SourceAdapter / ChannelAdapter (ABC)
 │   ├── base.py  amazon.py  naver.py
+│   ├── _http.py              # 공용 HTTP(재시도·백오프·429·키 마스킹)
+│   └── factory.py            # build_adapters: 키 유무로 real/mock 조립(Composition Root)
 ├── compliance/              # 통관·인증 규제 필터 (PASS/BLOCK/REVIEW)
 │   ├── engine.py  rules_loader.py  hs_classifier.py  models.py
 │   └── rules/*.yaml          # 규칙 = 데이터 (배포 없이 갱신)
@@ -94,7 +114,8 @@ jikgugom/
 ├── monitor/                  # 가격·재고 폴링 → auto-pause/리프라이싱/재개
 │   ├── worker.py  models.py
 ├── pipeline/                 # 소싱→컴플→마진→[평가]→콘텐츠→등록 오케스트레이션
-│   └── runner.py             # PipelineRunner (auto_publish=False=승인 게이트)
+│   ├── runner.py             # PipelineRunner (auto_publish=False=승인 게이트)
+│   └── multichannel.py       # MultiChannelPublisher (한 draft → N채널 팬아웃 발행)
 ├── evaluation/               # ① 소싱 평가 에이전트 (stage 2.5, 시장성 점수)
 │   ├── agent.py  llm.py  tools.py  models.py  CLAUDE.md
 ├── content/                  # ② 콘텐츠 에이전트 (ContentBuilder, 한글 초안 생성)

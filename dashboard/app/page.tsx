@@ -1,7 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, type Listing, type Order, type Stats } from "@/lib/api";
+import { api, type Config, type Listing, type Order, type Publication, type Stats } from "@/lib/api";
+
+const MODE_LABEL: Record<string, string> = {
+  amazon: "Amazon",
+  naver: "네이버",
+  coupang: "쿠팡",
+  anthropic: "LLM",
+  deepl: "번역",
+};
+
+const CHANNEL_LABEL: Record<string, string> = { naver: "네이버", coupang: "쿠팡" };
+
+const PUB_BADGE: Record<Publication["status"], string> = {
+  listed: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-rose-100 text-rose-700",
+  pending: "bg-amber-100 text-amber-700",
+};
 
 const LISTING_BADGE: Record<Listing["status"], string> = {
   ready: "bg-amber-100 text-amber-800",
@@ -21,23 +37,42 @@ const LISTING_LABEL: Record<Listing["status"], string> = {
   margin_rejected: "마진 미달",
 };
 
+const ORDER_LABEL: Record<Order["status"], string> = {
+  pending_approval: "승인 대기",
+  awaiting_purchase: "매입 대기",
+  purchased: "매입 완료",
+  rejected: "반려됨",
+};
+
+const ORDER_BADGE: Record<Order["status"], string> = {
+  pending_approval: "bg-amber-100 text-amber-800",
+  awaiting_purchase: "bg-sky-100 text-sky-800",
+  purchased: "bg-emerald-100 text-emerald-800",
+  rejected: "bg-zinc-200 text-zinc-600",
+};
+
 const won = (n: number | null) => (n == null ? "—" : `${n.toLocaleString()}원`);
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [config, setConfig] = useState<Config | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sweepMsg, setSweepMsg] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<Order | null>(null);
 
   async function load() {
     try {
       setErr(null);
-      const [s, l, o] = await Promise.all([api.stats(), api.listings(), api.orders()]);
+      const [s, l, o, c] = await Promise.all([
+        api.stats(), api.listings(), api.orders(), api.config(),
+      ]);
       setStats(s);
       setListings(l);
       setOrders(o);
+      setConfig(c);
     } catch {
       setErr("백엔드(http://localhost:8000)에 연결할 수 없습니다. uvicorn 실행 중인지 확인하세요.");
     }
@@ -83,6 +118,24 @@ export default function Dashboard() {
           <p className="text-sm text-zinc-500">
             Amazon US → 네이버 스마트스토어 · 등록/발주 사람 승인
           </p>
+          {config && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-zinc-400">연동 모드:</span>
+              {Object.entries(config.modes).map(([key, mode]) => (
+                <span
+                  key={key}
+                  className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                    mode === "real"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-zinc-200 text-zinc-500"
+                  }`}
+                >
+                  {MODE_LABEL[key] ?? key} {mode === "real" ? "real" : "mock"}
+                </span>
+              ))}
+              <span className="ml-1 text-[10px] text-zinc-400">FX {config.fx_rate}</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -146,6 +199,20 @@ export default function Dashboard() {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${LISTING_BADGE[l.status]}`}>
                       {LISTING_LABEL[l.status]}
                     </span>
+                    {l.publications.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {l.publications.map((p) => (
+                          <span
+                            key={p.channel}
+                            title={p.channel_product_no ?? p.status}
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${PUB_BADGE[p.status]}`}
+                          >
+                            {CHANNEL_LABEL[p.channel] ?? p.channel}
+                            {p.status === "listed" ? " ✓" : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-zinc-700">{won(l.price_krw)}</td>
                   <td className="px-4 py-3 text-center">
@@ -219,7 +286,17 @@ export default function Dashboard() {
                   >
                     {won(o.profit_krw)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">{o.status}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ORDER_BADGE[o.status]}`}>
+                      {ORDER_LABEL[o.status]}
+                    </span>
+                    {o.status === "purchased" && (
+                      <div className="mt-1 text-xs text-zinc-400">
+                        {o.amazon_order_no}
+                        {o.tracking_no ? ` · 송장 ${o.tracking_no}` : ""}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     {o.status === "pending_approval" ? (
                       <div className="flex justify-end gap-2">
@@ -238,6 +315,14 @@ export default function Dashboard() {
                           반려
                         </button>
                       </div>
+                    ) : o.status === "awaiting_purchase" ? (
+                      <button
+                        onClick={() => setConfirmTarget(o)}
+                        disabled={busy}
+                        className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+                      >
+                        매입 확정
+                      </button>
                     ) : (
                       <span className="text-xs text-zinc-300">{o.fulfillment_id ?? "—"}</span>
                     )}
@@ -250,9 +335,88 @@ export default function Dashboard() {
       </section>
 
       <footer className="mt-10 text-center text-xs text-zinc-400">
-        🐻 직구곰 admin · SQLite 영속 + 주기 점검 스케줄러 (발주 자동화는 Phase 3)
+        🐻 직구곰 admin · SQLite 영속 + 주기 점검 스케줄러 · 반자동(HITL) 발주 · 멀티채널 동시등록
       </footer>
+
+      {confirmTarget && (
+        <ConfirmPurchaseModal
+          order={confirmTarget}
+          busy={busy}
+          onClose={() => setConfirmTarget(null)}
+          onSubmit={async (amazonNo, tracking) => {
+            await act(() => api.confirmOrder(confirmTarget.id, amazonNo, tracking));
+            setConfirmTarget(null);
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+function ConfirmPurchaseModal({
+  order,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  order: Order;
+  busy: boolean;
+  onClose: () => void;
+  onSubmit: (amazonNo: string, tracking: string | null) => Promise<void>;
+}) {
+  const [amazonNo, setAmazonNo] = useState("");
+  const [tracking, setTracking] = useState("");
+
+  return (
+    <div
+      className="fixed inset-0 z-10 flex items-center justify-center bg-black/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 className="text-lg font-semibold text-zinc-900">매입 확정</h3>
+        <p className="mt-1 text-sm text-zinc-500">
+          {order.id} · {order.product_id} · {order.buyer}
+          <br />
+          Amazon에서 실제 매입을 마친 뒤 주문번호를 입력하세요.
+        </p>
+        <label className="mt-4 block text-xs font-medium text-zinc-600">
+          Amazon 주문번호 <span className="text-rose-500">*</span>
+        </label>
+        <input
+          autoFocus
+          value={amazonNo}
+          onChange={(e) => setAmazonNo(e.target.value)}
+          placeholder="111-1234567-1234567"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+        />
+        <label className="mt-3 block text-xs font-medium text-zinc-600">송장번호 (선택)</label>
+        <input
+          value={tracking}
+          onChange={(e) => setTracking(e.target.value)}
+          placeholder="1Z999AA10123456784"
+          className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none"
+        />
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => onSubmit(amazonNo.trim(), tracking.trim() || null)}
+            disabled={busy || amazonNo.trim() === ""}
+            className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+          >
+            확정
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
