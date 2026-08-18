@@ -3,7 +3,7 @@
 fx_rate_krw_per_usd: 1380       # USD→KRW 기본 환율
 fx_buffer: 1.05                 # 주문~발주 환율 변동 흡수 버퍼(+5%)
 
-intl_shipping_krw: 8000         # 해외(미국)→한국 배송비(건당 추정)
+intl_shipping_krw: 8000         # 해외(중국 AliExpress)→한국 배송비(건당 추정, 정책/배대지 시세 반영)
 domestic_shipping_krw: 3000     # 국내 배송비
 return_reserve_rate: 0.03       # 반품충당(도착원가의 3%)
 

@@ -37,7 +37,7 @@ class RuleSet:
     banned_patterns: list[BannedPattern] = field(default_factory=list)
     kc_categories: list[KcCategory] = field(default_factory=list)
     counterfeit_brands: list[str] = field(default_factory=list)
-    list_clearance_limit_usd: Decimal = Decimal("200")
+    list_clearance_limit_usd: Decimal = Decimal("150")  # AliExpress(중국발) 기본; 미국발이면 200
     hs_map: dict[str, str] = field(default_factory=dict)
 
 
@@ -84,6 +84,6 @@ def load_ruleset(rules_dir: Path | None = None) -> RuleSet:
         banned_patterns=patterns,
         kc_categories=kc_categories,
         counterfeit_brands=brands.get("counterfeit_risk", []),
-        list_clearance_limit_usd=Decimal(str(customs.get("us_list_clearance_limit_usd", 200))),
+        list_clearance_limit_usd=Decimal(str(customs.get("list_clearance_limit_usd", 150))),
         hs_map=customs.get("hs_map", {}),
     )
