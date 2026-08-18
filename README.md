@@ -2,7 +2,14 @@
 
 > 🐻 해외(AliExpress·Amazon)에서 상품을 물어와 국내 멀티채널에 푸는 **무재고 구매대행 자동화 플랫폼**. 돈이 오가는 구간은 결정론 코드로, 애매한 판단만 AI 에이전트로.
 
-<!-- TODO: 대시보드 데모 GIF/스크린샷 -->
+---
+
+## 🎬 데모
+
+<!-- TODO: 실측값 채우기 — 대시보드 동작 GIF / 스크린샷 / 배포 링크 -->
+🚧 **데모 GIF·스크린샷 추가 필요** (어드민 대시보드 승인 버튼·발주 큐·시장성 점수 화면)
+
+키 없이 즉시 전체 흐름을 보고 싶으면 [실행 방법](#-실행-방법) → `python -m jikgugom.demo` 한 줄로 mock 파이프라인이 돈다.
 
 ---
 
@@ -158,6 +165,30 @@ cp .env.example .env          # 키 채운 레이어만 real (graceful degradati
 docker compose up -d --build  # 프론트 :3000 / 백엔드 :8000
 ```
 Google OAuth 관리자 로그인·환경변수 상세는 [`DEPLOY.md`](./DEPLOY.md) 참조.
+
+---
+
+## 📁 코드 구조 (요약)
+
+```
+jikgugom/
+├── adapters/     포트-어댑터: SourceAdapter / ChannelAdapter (ABC) + AliExpress·Amazon
+├── compliance/   통관·KC·금지어 규제 필터 (PASS/BLOCK/REVIEW), 룰=YAML
+├── margin/       전 비용 마진엔진 → 채널 판매가/예상이익
+├── monitor/      가격·재고 폴링 → auto-pause/리프라이싱/재개
+├── pipeline/     소싱→컴플→마진→[평가]→콘텐츠→등록 오케스트레이션 + 멀티채널 팬아웃
+├── evaluation/   시장성 평가 에이전트 (Gemini, mock 폴백)
+├── content/      콘텐츠 에이전트 (번역+LLM 초안, Gemini)
+├── order/        주문 가드 + 반자동 발주 (멱등 원장)
+├── cs/           CS 응대 에이전트 (자동응답 + 에스컬레이션)
+└── core/         설정·Gemini REST 클라이언트 (settings.py → real/mock 자동 배선)
+api/              FastAPI 대시보드 API + Repository(SQLite/PG) + 스케줄러 + OAuth 인증
+dashboard/        Next.js / React 어드민 UI (승인 큐·발주 큐·매입확정 모달)
+config/costs.yaml 비용 파라미터 (환율·관세·수수료)
+tests/            계약/엔진/에이전트 테스트 (194 passed, 외부 의존 0)
+```
+
+상세 설계는 [`docs/DESIGN.md`](./docs/DESIGN.md), 컴플라이언스 스펙은 [`docs/COMPLIANCE_FILTER.md`](./docs/COMPLIANCE_FILTER.md) 참고.
 
 ---
 
